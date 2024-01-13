@@ -25,44 +25,37 @@ public class MainMenuScene {
         Label welcomeLabel = new Label("Welcome to the ByteLib Library");
         welcomeLabel.setStyle("-fx-font-size: 24; -fx-font-weight: bold; -fx-text-fill: #2c3e50;");
 
-        Button userLoginButton = createMenuButton("Log In as User", UserType.BORROWER, "login");
-        Button librarianLoginButton = createMenuButton("Log In as Librarian", UserType.LIBRARIAN, "login");
-        Button registerButton = createMenuButton("Register a New Account", UserType.BORROWER, "registration");
-        Button exitButton = createMenuButton("Exit", null, "exit");
+        Button userLoginButton = createMenuButton("Log In", "login");
+        Button registerButton = createMenuButton("Register a New Account","registration");
+        Button exitButton = createMenuButton("Exit", "exit");
 
-        root.getChildren().addAll(welcomeLabel, userLoginButton, librarianLoginButton, registerButton, exitButton);
+        root.getChildren().addAll(welcomeLabel, userLoginButton, registerButton, exitButton);
     }
 
     public VBox getRoot() {
         return root;
     }
 
-    private Button createMenuButton(String text, UserType userType, String type) {
+    private Button createMenuButton(String text, String type) {
         Button button = new Button(text);
         button.setStyle("-fx-background-color: #008000; -fx-text-fill: white; -fx-font-size: 14;");
-        button.setOnAction(event -> handleButtonClick(userType, type));
+        button.setOnAction(event -> handleButtonClick(type));
         button.setMinWidth(200);
         return button;
     }
 
-    private void handleButtonClick(UserType userType, String actionType) {
-        if (userType == null) {
-            primaryStage.close();
+    private void handleButtonClick(String actionType) {
 
-        } else if (userType == UserType.LIBRARIAN || userType == UserType.BORROWER) {
+        if (actionType.equals("login")) {
+            showLoginScene();
 
-            if (actionType.equals("login")) {
-                showLoginScene(userType);
-
-            } else if (actionType.equals("registration")) {
-                showRegisterScene();
-            }
+        } else if (actionType.equals("registration")) {
+            showRegisterScene();
         }
     }
 
-    private void showLoginScene(UserType userType) {
-        LoginScene loginScene = new LoginScene(primaryStage, library, userType, primaryStage.getScene());
-        System.out.println(userType.name());
+    private void showLoginScene() {
+        LoginScene loginScene = new LoginScene(primaryStage, library, primaryStage.getScene());
         primaryStage.setScene(new Scene(loginScene.getRoot(), 500, 400));
     }
 

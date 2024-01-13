@@ -2,34 +2,30 @@ package bytelib.scenes;
 
 import bytelib.Library;
 import bytelib.enums.UserType;
-import bytelib.items.books.Book;
 import bytelib.users.User;
-import javafx.collections.FXCollections;
-import javafx.collections.ObservableList;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
-import javafx.scene.control.TableColumn;
-import javafx.scene.control.TableView;
-import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 
-import static org.controlsfx.control.action.ActionUtils.createMenuButton;
-
-public class UtilitiesMenuScene {
+public class LibraryMenuScene {
     private final VBox root;
     private final Stage primaryStage;
     private final Library library;
     private final UserType userType;
     private final User loggedInUser;
 
-    public UtilitiesMenuScene(Stage primaryStage, Library library, UserType userType, User loggedInUser1) {
+    public LibraryMenuScene(Stage primaryStage, Library library, User loggedInUser) {
         this.primaryStage = primaryStage;
         this.library = library;
-        this.userType = userType;
-        this.loggedInUser = loggedInUser1;
+        this.userType = library.getUserType(loggedInUser.getUserId());
+        this.loggedInUser = loggedInUser;
+
+        if (userType != null) {
+            System.out.println("USER TYPE IS:  " + userType.name());
+        }
 
         root = new VBox(20);
         root.setStyle("-fx-background-color: #ecf0f1; -fx-padding: 20;");

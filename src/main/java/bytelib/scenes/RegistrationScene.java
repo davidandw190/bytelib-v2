@@ -1,6 +1,7 @@
 package bytelib.scenes;
 
 import bytelib.Library;
+import bytelib.enums.UserType;
 import bytelib.users.Borrower;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
@@ -34,7 +35,9 @@ public class RegistrationScene {
         PasswordField passwordField = createPasswordField("Password");
         PasswordField confirmPasswordField = createPasswordField("Confirm Password");
 
-        Button registerButton = createButton("Register", () -> handleRegistration(usernameField, emailField, phoneField, passwordField, confirmPasswordField));
+        ChoiceBox<String> accountTypeChoiceBox = createAccountTypeChoiceBox();
+
+        Button registerButton = createButton("Register", () -> handleRegistration(usernameField, emailField, phoneField, passwordField, confirmPasswordField, accountTypeChoiceBox));
         Button backButton = createButton("Cancel", () -> goBack(primaryStage));
 
         root.add(titleLabel, 0, 0, 2, 1);
@@ -43,8 +46,9 @@ public class RegistrationScene {
         root.add(phoneField, 0, 3, 2, 1);
         root.add(passwordField, 0, 4, 2, 1);
         root.add(confirmPasswordField, 0, 5, 2, 1);
-        root.add(registerButton, 0, 6);
-        root.add(backButton, 1, 6);
+        root.add(accountTypeChoiceBox, 0, 6, 2, 1);
+        root.add(registerButton, 0, 7);
+        root.add(backButton, 1, 7);
     }
 
     public GridPane getRoot() {
@@ -72,12 +76,21 @@ public class RegistrationScene {
         return button;
     }
 
-    private void handleRegistration(TextField usernameField, TextField emailField, TextField phoneField, PasswordField passwordField, PasswordField confirmPasswordField) {
+    private ChoiceBox<String> createAccountTypeChoiceBox() {
+        ChoiceBox<String> choiceBox = new ChoiceBox<>();
+        choiceBox.getItems().addAll(UserType.BORROWER.name(), UserType.LIBRARIAN.name());
+        choiceBox.setValue(UserType.BORROWER.name());
+        choiceBox.getStyleClass().add("registration-text-field");
+        return choiceBox;
+    }
+
+    private void handleRegistration(TextField usernameField, TextField emailField, TextField phoneField, PasswordField passwordField, PasswordField confirmPasswordField, ChoiceBox<String> accountTypeChoiceBox) {
         String username = usernameField.getText().trim();
         String email = emailField.getText().trim();
         String phone = phoneField.getText().trim();
         String password = passwordField.getText();
         String confirmPassword = confirmPasswordField.getText();
+        String accountType = accountTypeChoiceBox.getValue();
 
         if (!confirmPassword.equals(password)) {
             showErrorPopup("Passwords Don't Match", "Please ensure you entered your password and confirmation password correctly.");
@@ -100,8 +113,9 @@ public class RegistrationScene {
             return;
         }
 
-        Borrower newBorrower = new Borrower(username, password, email, phone);
-        library.registerBorrower(username, password, email, phone);
+        System.out.println("Chose " + accountType);
+
+        library.registerUser(username, password, email, phone, accountType);
 
         showSuccessPopup("Account Created Successfully!");
 

@@ -31,10 +31,9 @@ public class ByteLibApp extends Application {
 
         try {
             library = new Library(dbConnection);
-//            library.loadData(ByteLibApp.DEFAULT_FILE_PATH, "objectstream");
             System.out.println(" [*] Library loaded successfully");
         } catch (Exception e) {
-            System.out.println("Error loading library from ");
+            System.out.println("Error loading library");
         }
 
         return library;

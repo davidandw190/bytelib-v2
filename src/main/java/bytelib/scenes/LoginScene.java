@@ -1,8 +1,6 @@
 package bytelib.scenes;
 
 import bytelib.Library;
-import bytelib.enums.UserType;
-import bytelib.users.Borrower;
 import bytelib.users.User;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
@@ -15,14 +13,12 @@ public class LoginScene {
     private final VBox root;
     private final Stage primaryStage;
     private final Library library;
-    private final UserType userType;
     private final Scene previousScene;
     private User loggedInUser;
 
-    public LoginScene(Stage primaryStage, Library library, UserType userType, Scene previousScene) {
+    public LoginScene(Stage primaryStage, Library library, Scene previousScene) {
         this.primaryStage = primaryStage;
         this.library = library;
-        this.userType = userType;
         this.previousScene = previousScene;
 
         root = new VBox(20);
@@ -89,51 +85,20 @@ public class LoginScene {
             return;
         }
 
-        if (userType == UserType.BORROWER) {
-            loggedInUser = library.loginBorrower(usernameOrEmail, password);
-        } else {
-            String librarianUsername = "admin";
-            String librarianPassword = "123";
+        loggedInUser = library.loginBorrower(usernameOrEmail, password);
 
-            if (librarianUsername.equals(usernameOrEmail) && librarianPassword.equals(password)) {
-                System.out.println("\nLogin successful! Welcome, " + librarianUsername + "!");
-
-            } else {
-                errorLabel.setText("Invalid credentials. Please try again.");
-                return;
-            }
-        }
-
-//        if (loggedInUser == null) {
-//            errorLabel.setText("Invalid credentials. Please try again.");
-//        } else {
-            showLibraryMenuScene();
-//        }
-    }
-
-    private void handleBorrowerLogin(String usernameOrEmail, String password, Label errorLabel) {
-        Borrower loggedInUser = library.loginBorrower(usernameOrEmail, password);
         if (loggedInUser != null) {
-            showSuccessPopup("Login successful! Welcome, " + loggedInUser.getUsername() + "!");
-        } else {
-            errorLabel.setText("Invalid credentials. Please try again.");
-        }
-    }
-
-    private void handleLibrarianLogin(String usernameOrEmail, String password, Label errorLabel) {
-        String librarianUsername = "admin";
-        String librarianPassword = "123";
-        if (librarianUsername.equals(usernameOrEmail) && librarianPassword.equals(password)) {
-            System.out.println("\nLogin successful! Welcome, " + librarianUsername + "!");
+            System.out.println("\nLogin successful! Welcome, " + loggedInUser.getUsername() + "!");
             showLibraryMenuScene();
+
         } else {
             errorLabel.setText("Invalid credentials. Please try again.");
         }
     }
 
     private void showLibraryMenuScene() {
-        UtilitiesMenuScene utilitiesMenuScene = new UtilitiesMenuScene(primaryStage, library, userType, loggedInUser);
-        primaryStage.setScene(new Scene(utilitiesMenuScene.getRoot(), 500, 400));
+        LibraryMenuScene libraryMenuScene = new LibraryMenuScene(primaryStage, library, loggedInUser);
+        primaryStage.setScene(new Scene(libraryMenuScene.getRoot(), 500, 400));
     }
 
     private void goBack(Stage primaryStage) {

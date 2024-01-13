@@ -1,17 +1,22 @@
 package bytelib;
 
+import bytelib.enums.UserType;
 import bytelib.items.periodical.Periodical;
 import bytelib.persistence.DBConnector;
 import bytelib.security.PasswordEncoder;
 import bytelib.users.Borrower;
+import bytelib.users.User;
 
 
 import java.io.*;
+import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.List;
 
 
 public class Library implements Serializable {
@@ -60,22 +65,62 @@ public class Library implements Serializable {
     }
 
 
-    public void registerBorrower(String username, String password, String email, String phoneNo) {
+    public void registerUser(String username, String password, String email, String phoneNo, String userTypeName) {
         if (!isUsernameTaken(username) && !isEmailTaken(email)) {
             try {
+                Long accountTypeId = getUserTypeIdByName(userTypeName);
+
                 String sql = "INSERT INTO users (username, password, email, phone_no, role_id) VALUES (?, ?, ?, ?, ?)";
+
                 try (PreparedStatement preparedStatement = dbConnection.prepareStatement(sql)) {
                     preparedStatement.setString(1, username);
                     preparedStatement.setString(2, PasswordEncoder.hashPassword(password));
                     preparedStatement.setString(3, email);
                     preparedStatement.setString(4, phoneNo);
-                    preparedStatement.setLong(5, 1);
+                    preparedStatement.setLong(5, accountTypeId);
                     preparedStatement.executeUpdate();
                 }
             } catch (SQLException e) {
                 e.printStackTrace();
             }
         }
+    }
+
+    public Long getUserTypeIdByName(String typeName) {
+        try {
+            String sql = "SELECT type_id FROM user_type WHERE name = ?";
+            try (PreparedStatement preparedStatement = dbConnection.prepareStatement(sql)) {
+                preparedStatement.setString(1, typeName);
+                try (ResultSet resultSet = preparedStatement.executeQuery()) {
+                    if (resultSet.next()) {
+                        return resultSet.getLong("type_id");
+                    }
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+            // TODO: Handle the exception properly or throw a custom exception
+        }
+        return null;
+    }
+
+    public UserType getUserType(BigInteger userId) {
+        try {
+            String sql = "SELECT user_type.name FROM users JOIN user_type ON users.role_id = user_type.type_id WHERE user_id = ?";
+            try (PreparedStatement preparedStatement = dbConnection.prepareStatement(sql)) {
+                preparedStatement.setBigDecimal(1, new BigDecimal(userId));
+                try (ResultSet resultSet = preparedStatement.executeQuery()) {
+                    if (resultSet.next()) {
+                        String userType = resultSet.getString("name");
+                        return UserType.valueOf(userType);
+                    }
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+            // TODO: Handle the exception properly or throw a custom exception
+        }
+        return null;
     }
 
 
