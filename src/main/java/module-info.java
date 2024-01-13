@@ -9,6 +9,8 @@ module org.bytelib.bytelib {
     requires org.kordamp.bootstrapfx.core;
     requires org.apache.commons.lang3;
     requires org.apache.commons.text;
+    requires java.sql;
+    requires jbcrypt;
 
     opens bytelib to javafx.fxml;
     exports bytelib;

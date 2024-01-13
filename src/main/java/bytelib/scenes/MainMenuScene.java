@@ -9,12 +9,12 @@ import javafx.scene.control.Label;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 
-public class MenuScene {
+public class MainMenuScene {
     private final VBox root;
     private final Stage primaryStage;
     private final Library library;
 
-    public MenuScene(Stage primaryStage, Library library) {
+    public MainMenuScene(Stage primaryStage, Library library) {
         this.primaryStage = primaryStage;
         this.library = library;
 
@@ -62,6 +62,7 @@ public class MenuScene {
 
     private void showLoginScene(UserType userType) {
         LoginScene loginScene = new LoginScene(primaryStage, library, userType, primaryStage.getScene());
+        System.out.println(userType.name());
         primaryStage.setScene(new Scene(loginScene.getRoot(), 500, 400));
     }
 

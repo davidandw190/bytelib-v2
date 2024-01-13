@@ -18,12 +18,17 @@ public class Borrower extends User {
         this.borrowedItems = new HashMap<>();
     }
 
+    public Borrower(BigInteger userId, String name, String password, String email, String phoneNum) {
+        super(userId, name, password, email, phoneNum);
+        this.borrowedItems = new HashMap<>();
+    }
+
     public List<BorrowRequest> getBorrowRequests(Library library) {
-        List<BorrowRequest> userBorrowRequests = library.getUserBorrowRequests(this);
-        if (userBorrowRequests.isEmpty()) {
-            System.out.println("No borrow requests present.");
-            return new ArrayList<>();
-        }
+//        List<BorrowRequest> userBorrowRequests = library.getUserBorrowRequests(this);
+//        if (userBorrowRequests.isEmpty()) {
+//            System.out.println("No borrow requests present.");
+//            return new ArrayList<>();
+//        }
         return new ArrayList<>();
     }
 }

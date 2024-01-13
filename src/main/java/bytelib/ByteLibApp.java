@@ -1,9 +1,12 @@
 package bytelib;
 
-import bytelib.scenes.MenuScene;
+import bytelib.persistence.DBConnector;
+import bytelib.scenes.MainMenuScene;
 import javafx.application.Application;
 import javafx.scene.Scene;
 import javafx.stage.Stage;
+
+import java.sql.Connection;
 
 public class ByteLibApp extends Application {
     private static final String DEFAULT_FILE_PATH = "lms.dat";
@@ -14,43 +17,33 @@ public class ByteLibApp extends Application {
 
     @Override
     public void start(Stage primaryStage) {
-        Library library = loadLibrary();
+        Connection dbConnection = DBConnector.getConnection();
+        Library library = loadLibrary(dbConnection);
 
         primaryStage.setTitle("ByteLib - by Andrei-David Nan");
-        primaryStage.setOnCloseRequest(event -> saveLibrary(library, DEFAULT_FILE_PATH));
+//        primaryStage.setOnCloseRequest(event -> saveLibrary(library, DEFAULT_FILE_PATH));
 
         showMenuScene(primaryStage, library);
     }
 
-    private Library loadLibrary() {
+    private Library loadLibrary(Connection dbConnection) {
         Library library = null;
 
         try {
-            library = new Library();
-            library.loadData(ByteLibApp.DEFAULT_FILE_PATH, "objectstream");
-            System.out.println(" [*] Library loaded successfully from " + ByteLibApp.DEFAULT_FILE_PATH);
+            library = new Library(dbConnection);
+//            library.loadData(ByteLibApp.DEFAULT_FILE_PATH, "objectstream");
+            System.out.println(" [*] Library loaded successfully");
         } catch (Exception e) {
-            System.out.println("Error loading library from " + ByteLibApp.DEFAULT_FILE_PATH + ": " + e.getMessage());
+            System.out.println("Error loading library from ");
         }
 
         return library;
     }
 
-    private Library initNewLibraryWithMockData() {
-        return null;
-    }
-
-    private void saveLibrary(Library library, String filePath) {
-        try {
-            library.saveData(filePath, "objectstream");
-        } catch (Exception e) {
-            System.out.println("Error saving library to " + filePath + ": " + e.getMessage());
-        }
-    }
 
     private void showMenuScene(Stage primaryStage, Library library) {
-        MenuScene menuScene = new MenuScene(primaryStage, library);
-        primaryStage.setScene(new Scene(menuScene.getRoot(), 500, 400));
+        MainMenuScene mainMenuScene = new MainMenuScene(primaryStage, library);
+        primaryStage.setScene(new Scene(mainMenuScene.getRoot(), 500, 400));
         primaryStage.show();
     }
 }

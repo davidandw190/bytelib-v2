@@ -85,7 +85,7 @@ public class BorrowerMenuScene {
     }
 
     private void showMenuScene() {
-        MenuScene menuScene = new MenuScene(primaryStage, library);
-        primaryStage.setScene(new Scene(menuScene.getRoot(), 500, 400));
+        MainMenuScene mainMenuScene = new MainMenuScene(primaryStage, library);
+        primaryStage.setScene(new Scene(mainMenuScene.getRoot(), 500, 400));
     }
 }

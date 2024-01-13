@@ -85,6 +85,7 @@ public class RegistrationScene {
         }
 
         if (!isValidUsername(username) || !isValidEmail(email) || !isValidPhoneNumber(phone) || !isValidPassword(password)) {
+            System.out.println(isValidEmail(username) + " " + isValidEmail(email) + isValidPhoneNumber(phone) + isValidPassword(password));
             showErrorPopup("asdasd", "Please check your input and try again.");
             return;
         }
@@ -100,7 +101,7 @@ public class RegistrationScene {
         }
 
         Borrower newBorrower = new Borrower(username, password, email, phone);
-        library.addUser(newBorrower);
+        library.registerBorrower(username, password, email, phone);
 
         showSuccessPopup("Account Created Successfully!");
 
