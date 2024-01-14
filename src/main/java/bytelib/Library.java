@@ -1,22 +1,17 @@
 package bytelib;
 
+import bytelib.enums.LibraryItemType;
+import bytelib.enums.ResearchDomain;
 import bytelib.enums.UserType;
-import bytelib.items.periodical.Periodical;
 import bytelib.persistence.DBConnector;
 import bytelib.security.PasswordEncoder;
 import bytelib.users.Borrower;
-import bytelib.users.User;
 
-
-import java.io.*;
+import java.io.Serializable;
 import java.math.BigDecimal;
 import java.math.BigInteger;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.List;
+import java.sql.*;
+import java.time.LocalDate;
 
 
 public class Library implements Serializable {
@@ -123,7 +118,6 @@ public class Library implements Serializable {
         return null;
     }
 
-
 //    // Utility method to check if a book with the given title already exists
 //    private boolean canItemBeAdded(LibraryItem newItem) {
 //        if (newItem instanceof Book) {
@@ -135,13 +129,6 @@ public class Library implements Serializable {
 //            // TODO: add custom exception here
 //        }
 //    }
-
-
-    // Utility method to check if a periodical with the given details already exists
-    private boolean canItemBeAdded(Periodical newPeriodical) {
-        // TODO
-        return false;
-    }
 
 
 //    public void requestBorrow(Borrower borrower, Borrowable borrowable) throws ItemNotAvailableForBorrowException {
@@ -224,6 +211,185 @@ public class Library implements Serializable {
             return false;
             // TODO throw proper custom exception
         }
+    }
+
+    public boolean addItem(LibraryItemType libraryItemType, String title, String description, Integer pages, String publisher, Integer volume, Integer edition, Integer citations, LocalDate pubDate, String authors, ResearchDomain domain) {
+        try {
+            // Start a transaction
+            dbConnection.setAutoCommit(false);
+
+            // Validate input parameters (add more validation as needed)
+            if (title == null || title.isEmpty() || description == null || description.isEmpty()) {
+                throw new IllegalArgumentException("Title and description cannot be empty");
+            }
+
+            Long itemTypeId = getItemTypeIdByName(libraryItemType.name());
+
+            // Check if the textbook already exists
+            if (isItemExists(title, itemTypeId)) {
+                System.out.println("Textbook with title '" + title + "' already exists.");
+                return false;
+            }
+
+            Long topicId = getTopicIdByName(domain.name());
+
+            // Insert the textbook into the database
+            insertTextbook(title, description, pages, publisher, volume, edition, citations, pubDate, authors, topicId, itemTypeId);
+
+            // Commit the transaction
+            dbConnection.commit();
+
+            return true;
+
+        } catch (SQLException e) {
+            // Handle exceptions and rollback the transaction on error
+            e.printStackTrace();
+            try {
+                dbConnection.rollback();
+            } catch (SQLException rollbackException) {
+                rollbackException.printStackTrace();
+            }
+
+            return false;
+
+        } finally {
+            // Set AutoCommit back to true to avoid issues with other operations
+            try {
+                dbConnection.setAutoCommit(true);
+            } catch (SQLException autoCommitException) {
+                autoCommitException.printStackTrace();
+            }
+        }
+    }
+
+    private Long getItemTypeIdByName(String typeName) throws SQLException {
+        String sql = "SELECT type_id FROM item_type WHERE display_name = ?";
+        try (PreparedStatement preparedStatement = dbConnection.prepareStatement(sql)) {
+            preparedStatement.setString(1, typeName);
+            try (ResultSet resultSet = preparedStatement.executeQuery()) {
+                if (resultSet.next()) {
+                    return resultSet.getLong("type_id");
+                }
+            }
+        }
+        return null;
+    }
+
+    private Long getTopicIdByName(String topicName) throws SQLException {
+        String sql = "SELECT domain_id FROM research_domain WHERE display_name = ?";
+        try (PreparedStatement preparedStatement = dbConnection.prepareStatement(sql)) {
+            preparedStatement.setString(1, topicName);
+            try (ResultSet resultSet = preparedStatement.executeQuery()) {
+                if (resultSet.next()) {
+                    return resultSet.getLong("domain_id");
+                }
+            }
+        }
+        return null;
+    }
+
+    public Long getIdByName(String typeName) {
+        try {
+            String sql = "SELECT type_id FROM user_type WHERE display_name = ?";
+            try (PreparedStatement preparedStatement = dbConnection.prepareStatement(sql)) {
+                preparedStatement.setString(1, typeName);
+                try (ResultSet resultSet = preparedStatement.executeQuery()) {
+                    if (resultSet.next()) {
+                        return resultSet.getLong("type_id");
+                    }
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+            // TODO: Handle the exception properly or throw a custom exception
+        }
+        return null;
+    }
+
+    private boolean isItemExists(String title, Long itemTypeId) throws SQLException {
+        String query = "SELECT COUNT(*) FROM library_items WHERE title = ? AND item_type_id = ?";
+        try (PreparedStatement preparedStatement = dbConnection.prepareStatement(query)) {
+            preparedStatement.setString(1, title);
+            preparedStatement.setLong(2, itemTypeId);
+            try (ResultSet resultSet = preparedStatement.executeQuery()) {
+                if (resultSet.next()) {
+                    int count = resultSet.getInt(1);
+                    return count > 0;
+                }
+            }
+        }
+        return false;
+    }
+
+    private void insertTextbook(String title, String description, Integer pages, String publisher, Integer volume, Integer edition, Integer citations, LocalDate pubDate, String authors, Long topicId, Long itemTypeId) throws SQLException {
+        String insertQuery = "INSERT INTO library_items (title, description, page_no, publisher, volume, edition, citation_no, pub_date, topic_id, item_type_id) " +
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+        try (PreparedStatement preparedStatement = dbConnection.prepareStatement(insertQuery, Statement.RETURN_GENERATED_KEYS)) {
+            preparedStatement.setString(1, title);
+            preparedStatement.setString(2, description);
+            preparedStatement.setInt(3, pages);
+            preparedStatement.setString(4, publisher);
+            preparedStatement.setInt(5, volume);
+            preparedStatement.setInt(6, edition);
+            preparedStatement.setInt(7, citations);
+            preparedStatement.setDate(8, java.sql.Date.valueOf(pubDate));
+            preparedStatement.setLong(9, topicId);
+            preparedStatement.setLong(10, itemTypeId);
+            preparedStatement.executeUpdate();
+
+            // get the generated item_id
+            ResultSet generatedKeys = preparedStatement.getGeneratedKeys();
+            if (generatedKeys.next()) {
+                long itemId = generatedKeys.getLong(1);
+                updateLibraryItemAuthors(itemId, authors);
+            }
+        }
+    }
+
+    private void updateLibraryItemAuthors(long itemId, String authors) throws SQLException {
+        String[] authorNames = authors.split(",");
+        for (String authorName : authorNames) {
+            long authorId = getAuthorIdByName(authorName.trim());
+            if (authorId == -1) {
+                // if the author doesn't exist, create a new one
+                authorId = insertAuthor(authorName.trim());
+            }
+
+            // update the library_item_authors table
+            String updateAuthorsQuery = "INSERT INTO library_item_authors (item_id, author_id) VALUES (?, ?)";
+            try (PreparedStatement updateAuthorsStatement = dbConnection.prepareStatement(updateAuthorsQuery)) {
+                updateAuthorsStatement.setLong(1, itemId);
+                updateAuthorsStatement.setLong(2, authorId);
+                updateAuthorsStatement.executeUpdate();
+            }
+        }
+    }
+
+    private long getAuthorIdByName(String authorName) throws SQLException {
+        String sql = "SELECT author_id FROM authors WHERE author_name = ?";
+        try (PreparedStatement preparedStatement = dbConnection.prepareStatement(sql)) {
+            preparedStatement.setString(1, authorName);
+            try (ResultSet resultSet = preparedStatement.executeQuery()) {
+                if (resultSet.next()) {
+                    return resultSet.getLong("author_id");
+                }
+            }
+        }
+        return -1; // Return -1 if author not found
+    }
+
+    private long insertAuthor(String authorName) throws SQLException {
+        String insertAuthorQuery = "INSERT INTO authors (author_name) VALUES (?)";
+        try (PreparedStatement insertAuthorStatement = dbConnection.prepareStatement(insertAuthorQuery, Statement.RETURN_GENERATED_KEYS)) {
+            insertAuthorStatement.setString(1, authorName);
+            insertAuthorStatement.executeUpdate();
+
+            ResultSet generatedKeys = insertAuthorStatement.getGeneratedKeys();
+            if (generatedKeys.next()) {
+                return generatedKeys.getLong(1);
+            }
+        }
+        return -1;
     }
 
 //    private Optional<User> findBorrowerByUsernameOrEmail(String usernameOrEmail) {

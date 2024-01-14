@@ -103,7 +103,9 @@ public class LibraryMenuScene {
     }
 
     private void addItem() {
-        System.out.println("Adding Book...");
+        AddItemScene addItemScene = new AddItemScene(primaryStage, library, loggedInUser);
+
+        primaryStage.setScene(new Scene(addItemScene.getRoot(), 500, 400));
     }
 
     private void removeItem() {
