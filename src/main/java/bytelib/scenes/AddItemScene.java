@@ -12,6 +12,10 @@ import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 
 import java.time.LocalDate;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Locale;
+import java.util.stream.Collectors;
 
 public class AddItemScene {
     private final VBox root;
@@ -39,8 +43,7 @@ public class AddItemScene {
         bookTypeComboBox.setPromptText("Select Book Type");
         root.getChildren().add(bookTypeComboBox);
 
-        Button nextButton = new Button("Next");
-        nextButton.setOnAction(event -> handleNextButton(bookTypeComboBox.getValue()));
+        Button nextButton = createButton("Next", () -> handleNextButton(bookTypeComboBox.getValue()));
         root.getChildren().add(nextButton);
 
         Button backButton = createButton("Back to Main Menu", this::goBackToMainMenu);
@@ -51,8 +54,6 @@ public class AddItemScene {
         return root;
     }
 
-
-
     private void handleNextButton(String selectedBookType) {
         if (selectedBookType == null || selectedBookType.isEmpty()) {
             showErrorPopup("Select Book Type", "Please select a book type before proceeding.");
@@ -61,19 +62,15 @@ public class AddItemScene {
 
         switch (selectedBookType) {
             case "Article":
-                // Show form for adding an article
                 showArticleForm();
                 break;
             case "Textbook":
-                // Show form for adding a textbook
                 showTextbookForm();
                 break;
             case "Novel":
-                // Show form for adding a novel
                 showNovelForm();
                 break;
             case "Journal":
-                // Show form for adding a journal
                 showJournalForm();
                 break;
             default:
@@ -81,18 +78,13 @@ public class AddItemScene {
         }
     }
 
+
     private void addLabeledNumberField(VBox container, String labelText, String promptText, String id) {
         Label label = new Label(labelText);
         label.setStyle("-fx-font-weight: bold;");
-        TextField textField = createNumberField(promptText);  // Use createNumberField instead of createTextField
+        TextField textField = createNumberField(promptText);
         textField.setId(id);
         container.getChildren().addAll(label, textField);
-    }
-
-    private void showArticleForm() {
-        // Implement form for adding an article
-        // You can create additional UI elements (labels, text fields, etc.) here
-        System.out.println("Adding an article...");
     }
 
     private void showTextbookForm() {
@@ -111,7 +103,7 @@ public class AddItemScene {
 
 
         addLabeledTextField(textbookLayout, "Title:", "Enter Title", "title");
-        addLabeledTextArea(textbookLayout);
+        addLabeledTextArea(textbookLayout,  "Enter Description", "description");
         addLabeledNumberField(textbookLayout, "Number of Pages:", "Enter Page Number", "page");
         addLabeledTextField(textbookLayout, "Publisher:", "Enter Publisher", "publisher");
         addLabeledNumberField(textbookLayout, "Volume:", "Enter Volume", "volume");
@@ -150,21 +142,81 @@ public class AddItemScene {
         textbookStage.show();
     }
 
+    private void showArticleForm() {
+        Stage articleStage = new Stage();
+        articleStage.setTitle("Add New Article");
+
+        VBox articleLayout = new VBox(10);
+        articleLayout.setStyle("-fx-background-color: #ecf0f1; -fx-padding: 20;");
+        articleLayout.setAlignment(Pos.CENTER);
+
+        Label titleLabel = new Label("Add New Article");
+        titleLabel.setStyle("-fx-font-size: 24; -fx-font-weight: bold; -fx-text-fill: #2c3e50;");
+
+        ScrollPane scrollPane = new ScrollPane();
+        scrollPane.setContent(articleLayout);
+
+        articleLayout.getChildren().addAll(titleLabel);
+
+
+        addLabeledTextField(articleLayout, "Title:", "Enter Title", "title");
+        addLabeledTextArea(articleLayout, "Enter Abstract", "abstract");
+        addLabeledNumberField(articleLayout, "Number of Pages:", "Enter Page Number", "page");
+        addLabeledNumberField(articleLayout, "Citation Number:", "Enter Citation Number", "citation");
+        addLabeledDatePicker(articleLayout, "Publication Date:", "publicationDate");
+
+        addLabeledTextField(articleLayout, "Authors:", "Enter author names separated by commas", "authors");
+
+        addLabeledComboBox(articleLayout, "Domain:", "Select Genre", "domain",
+                "SCIENCE", "TECHNOLOGY", "ENGINEERING", "MEDICINE", "BIOLOGY", "CHEMISTRY", "PHYSICS",
+                "MATHEMATICS", "SOCIAL SCIENCE", "HUMANITIES", "ECONOMICS", "COMPUTER SCIENCE", "DISTRIBUTED SYSTEMS",
+                "MACHINE LEARNING", "ENVIRONMENTAL SCIENCE","EDUCATION", "LAW", "OTHER");
+
+
+        Button addButton = createButton("Add Article", () -> handleAddArticle(
+                getTextFromLabeledField(articleLayout, "title"),
+                getTextFromLabeledField(articleLayout, "abstract"),
+                getTextFromLabeledField(articleLayout, "page"),
+                getTextFromLabeledField(articleLayout, "citation"),
+                getLocalDateFromLabeledDatePicker(articleLayout, "publicationDate"),
+                getTextFromLabeledField(articleLayout, "authors"),
+                ResearchDomain.valueOf(getSelectedItemFromLabeledComboBox(articleLayout, "domain"))
+        ));
+
+        Button backButton = createButton("Back", articleStage::close);
+
+        articleLayout.getChildren().addAll(addButton, backButton);
+
+
+        Scene textbookScene = new Scene(scrollPane, 600, 800);
+        articleStage.setScene(textbookScene);
+        articleStage.show();
+    }
+
+    private void handleAddArticle(String title, String abstractText, String pages, String citations, LocalDate pubDate, String authors, ResearchDomain domain) {
+        library.addItemToStock(LibraryItemType.ARTICLE, title, abstractText , Integer.parseInt(pages), null, null, null, null, Integer.parseInt(citations), pubDate, convertCommaSeparatedToList(authors), domain, null, null);
+    }
+
+    private List<String> convertCommaSeparatedToList(String s) {
+        return Arrays.stream(s.split(","))
+                .map(String::trim)
+                .toList();
+    }
+
     // Helper method to add labeled text field
     private void addLabeledTextField(VBox container, String labelText, String promptText, String id) {
-        Label label = new Label(labelText);
+        Label label = new Label(labelText);2
         label.setStyle("-fx-font-weight: bold;");
         TextField textField = createTextField(promptText);
         textField.setId(id);
         container.getChildren().addAll(label, textField);
     }
 
-    // Helper method to add labeled text area
-    private void addLabeledTextArea(VBox container) {
-        Label label = new Label("Description:");
+    private void addLabeledTextArea(VBox container, String labelText, String id) {
+        Label label = new Label(labelText + ":");
         label.setStyle("-fx-font-weight: bold;");
-        TextArea textArea = createTextArea("Enter Description");
-        textArea.setId("description");
+        TextArea textArea = createTextArea("Enter " + id);
+        textArea.setId(id);
         container.getChildren().addAll(label, textArea);
     }
 
@@ -220,11 +272,11 @@ public class AddItemScene {
     private void handleAddTextbook(String title, String description, String pages, String publisher, String volume, String edition, String citations,
                                    LocalDate pubDate, String authors, ResearchDomain domain) {
 
-        library.addItem(LibraryItemType.TEXTBOOK, title, description, Integer.parseInt(pages), publisher, Integer.parseInt(volume), Integer.parseInt(edition), Integer.parseInt(citations), pubDate, authors, domain);
+
+        library.addItemToStock(LibraryItemType.TEXTBOOK, title, description , Integer.parseInt(pages), null, Integer.parseInt(volume),
+                null,  Integer.parseInt(edition), Integer.parseInt(citations), pubDate, convertCommaSeparatedToList(authors), domain,
+                null, null);
     }
-
-
-
 
 
     private TextArea createTextArea(String prompt) {
@@ -239,14 +291,6 @@ public class AddItemScene {
         textField.setPromptText(prompt);
         textField.setStyle("-fx-background-color: #ecf0f1; -fx-border-color: #bdc3c7; -fx-border-width: 1px; -fx-padding: 5px;");
         return textField;
-    }
-
-
-
-
-    private void handleAddTextbook(String title, String authors, String edition, String isbn) {
-        String[] authorArray = authors.split(",");
-        System.out.println("Adding textbook to the database...");
     }
 
     private void showNovelForm() {

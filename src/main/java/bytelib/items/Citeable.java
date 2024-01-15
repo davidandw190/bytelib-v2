@@ -6,5 +6,5 @@ public interface Citeable {
 
     void cite();
 
-    long getNumberOfCitations();
+    Long getNumberOfCitations();
 }

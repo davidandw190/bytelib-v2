@@ -1,8 +1,9 @@
 package bytelib;
 
-import bytelib.enums.LibraryItemType;
-import bytelib.enums.ResearchDomain;
-import bytelib.enums.UserType;
+import bytelib.enums.*;
+import bytelib.items.books.Textbook;
+import bytelib.items.periodical.Article;
+import bytelib.items.periodical.Journal;
 import bytelib.persistence.DBConnector;
 import bytelib.security.PasswordEncoder;
 import bytelib.users.Borrower;
@@ -12,6 +13,7 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.sql.*;
 import java.time.LocalDate;
+import java.util.List;
 
 
 public class Library implements Serializable {
@@ -213,36 +215,103 @@ public class Library implements Serializable {
         }
     }
 
-    public boolean addItem(LibraryItemType libraryItemType, String title, String description, Integer pages, String publisher, Integer volume, Integer edition, Integer citations, LocalDate pubDate, String authors, ResearchDomain domain) {
+    public boolean addItemToStock(LibraryItemType itemType,
+                                  String title,
+                                  String description,
+                                  Integer pages,
+                                  String publisher,
+                                  Integer volume,
+                                  Integer issue,
+                                  Integer edition,
+                                  Integer citations,
+                                  LocalDate pubDate,
+                                  List<String> authors,
+                                  ResearchDomain domain,
+                                  BookGenre genre,
+                                  PublishingIntervals publishingInterval) {
         try {
-            // Start a transaction
             dbConnection.setAutoCommit(false);
 
-            // Validate input parameters (add more validation as needed)
             if (title == null || title.isEmpty() || description == null || description.isEmpty()) {
                 throw new IllegalArgumentException("Title and description cannot be empty");
             }
 
-            Long itemTypeId = getItemTypeIdByName(libraryItemType.name());
+            long itemTypeId = -1;
 
-            // Check if the textbook already exists
-            if (isItemExists(title, itemTypeId)) {
-                System.out.println("Textbook with title '" + title + "' already exists.");
-                return false;
+            assert itemType != null;
+
+            switch (itemType) {
+                case NOVEL -> {
+                    itemTypeId = getItemTypeIdByName(LibraryItemType.NOVEL.name());
+
+                    if (isItemExists(title, itemTypeId)) {
+                        System.out.println(itemType.name() + " with title '" + title + "' already exists.");
+                        return false;
+                    }
+
+                    Long genreId = getGenreIdByName(genre.name());
+
+                    Textbook textbook = new Textbook(title, description, pages, publisher, volume, edition, citations, pubDate, authors);
+
+                    insertTextbook(textbook, genreId, itemTypeId);
+
+                }
+
+                case ARTICLE -> {
+                    itemTypeId = getItemTypeIdByName(LibraryItemType.ARTICLE.name());
+
+
+                    if (isItemExists(title, itemTypeId)) {
+                        System.out.println(itemType.name() + " with title '" + title + "' already exists.");
+                        return false;
+                    }
+
+
+                    Article newArticle = new Article(title, description, publisher, pages, citations, pubDate, authors, domain);
+
+                    Long topicId = getTopicIdByName(domain.name());
+
+                    insertArticle(newArticle, topicId, itemTypeId);
+                }
+
+                case TEXTBOOK -> {
+                    itemTypeId = getItemTypeIdByName(LibraryItemType.TEXTBOOK.name());
+
+                    if (isItemExists(title, itemTypeId)) {
+                        System.out.println(itemType.name() + " with title '" + title + "' already exists.");
+                        return false;
+                    }
+
+                    Long topicId = getTopicIdByName(domain.name());
+
+                    Textbook textbook = new Textbook(title, description, pages, publisher, volume, edition, citations, pubDate, authors);
+
+                    insertTextbook(textbook, topicId, itemTypeId);
+                }
+
+                case JOURNAL -> {
+                    itemTypeId = getItemTypeIdByName(LibraryItemType.JOURNAL.name());
+
+                    if (isItemExists(title, itemTypeId)) {
+                        System.out.println(itemType.name() + " with title '" + title + "' already exists.");
+                        return false;
+                    }
+
+                    Journal newJournal = new Journal(title, description, publisher, volume, issue, pages, citations, pubDate, authors, domain, publishingInterval);
+
+                    Long topicId = getTopicIdByName(domain.name());
+
+                    Long publishingIntervalId = getPublishingIntervalIdByName(publishingInterval.name());
+
+                    insertJournal(newJournal, topicId, itemTypeId, publishingIntervalId);
+                }
             }
 
-            Long topicId = getTopicIdByName(domain.name());
-
-            // Insert the textbook into the database
-            insertTextbook(title, description, pages, publisher, volume, edition, citations, pubDate, authors, topicId, itemTypeId);
-
-            // Commit the transaction
             dbConnection.commit();
 
             return true;
 
         } catch (SQLException e) {
-            // Handle exceptions and rollback the transaction on error
             e.printStackTrace();
             try {
                 dbConnection.rollback();
@@ -253,12 +322,73 @@ public class Library implements Serializable {
             return false;
 
         } finally {
-            // Set AutoCommit back to true to avoid issues with other operations
             try {
                 dbConnection.setAutoCommit(true);
+
             } catch (SQLException autoCommitException) {
                 autoCommitException.printStackTrace();
             }
+        }
+    }
+
+    private Long getGenreIdByName(String name) {
+        String sql = "SELECT genre_id FROM book_genre WHERE display_name = ?";
+        try (PreparedStatement preparedStatement = dbConnection.prepareStatement(sql)) {
+            preparedStatement.setString(1, name);
+            try (ResultSet resultSet = preparedStatement.executeQuery()) {
+                if (resultSet.next()) {
+                    return resultSet.getLong("genre_id");
+                }
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+
+        return null;
+    }
+
+    private Long getPublishingIntervalIdByName(String name) {
+        String sql = "SELECT interval_id FROM publishing_intervals WHERE display_name = ?";
+        try (PreparedStatement preparedStatement = dbConnection.prepareStatement(sql)) {
+            preparedStatement.setString(1, name);
+            try (ResultSet resultSet = preparedStatement.executeQuery()) {
+                if (resultSet.next()) {
+                    return resultSet.getLong("type_id");
+                }
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+
+        return null;
+    }
+
+    private void insertJournal(Journal newJournal, Long topicId, Long itemTypeId, Long publishingIntervalId) {
+        String insertQuery = "INSERT INTO library_items (title, description, publisher, volume, issue, page_no, citation_no, pub_date, topic_id, item_type_id, publishing_interval_id) " +
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+        try (PreparedStatement preparedStatement = dbConnection.prepareStatement(insertQuery, Statement.RETURN_GENERATED_KEYS)) {
+            preparedStatement.setString(1, newJournal.getTitle());
+            preparedStatement.setString(2, newJournal.getAbstractText());
+            preparedStatement.setString(3, newJournal.getPublisher());
+            preparedStatement.setInt(4, newJournal.getVolume());
+            preparedStatement.setInt(5, newJournal.getIssue());
+            preparedStatement.setInt(6, newJournal.getPageNumber());
+            preparedStatement.setLong(7, newJournal.getNumberOfCitations());
+            preparedStatement.setDate(8, Date.valueOf(newJournal.getPublicationDate()));
+            preparedStatement.setLong(9, topicId);
+            preparedStatement.setLong(10, itemTypeId);
+            preparedStatement.setLong(11, publishingIntervalId);
+            preparedStatement.executeUpdate();
+
+
+            // get the generated item_id
+            ResultSet generatedKeys = preparedStatement.getGeneratedKeys();
+            if (generatedKeys.next()) {
+                long itemId = generatedKeys.getLong(1);
+                updateLibraryItemAuthors(itemId, newJournal.getAuthors());
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
         }
     }
 
@@ -321,41 +451,36 @@ public class Library implements Serializable {
         return false;
     }
 
-    private void insertTextbook(String title, String description, Integer pages, String publisher, Integer volume, Integer edition, Integer citations, LocalDate pubDate, String authors, Long topicId, Long itemTypeId) throws SQLException {
-        String insertQuery = "INSERT INTO library_items (title, description, page_no, publisher, volume, edition, citation_no, pub_date, topic_id, item_type_id) " +
-                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+    private void insertTextbook(Textbook textbook, Long topicId, Long itemTypeId) throws SQLException {
+        String insertQuery = "INSERT INTO library_items (title, description, page_no, publisher, edition, citation_no, pub_date, topic_id, item_type_id) " +
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
         try (PreparedStatement preparedStatement = dbConnection.prepareStatement(insertQuery, Statement.RETURN_GENERATED_KEYS)) {
-            preparedStatement.setString(1, title);
-            preparedStatement.setString(2, description);
-            preparedStatement.setInt(3, pages);
-            preparedStatement.setString(4, publisher);
-            preparedStatement.setInt(5, volume);
-            preparedStatement.setInt(6, edition);
-            preparedStatement.setInt(7, citations);
-            preparedStatement.setDate(8, java.sql.Date.valueOf(pubDate));
+            preparedStatement.setString(1, textbook.getTitle());
+            preparedStatement.setString(2, textbook.getDescription());
+            preparedStatement.setInt(3, textbook.getNumberOfPages());
+            preparedStatement.setString(4, textbook.getPublisher());
+            preparedStatement.setInt(5, textbook.getEdition());
+            preparedStatement.setLong(6, textbook.getNumberOfCitations());
+            preparedStatement.setDate(7, Date.valueOf(textbook.getPublicationDate()));
             preparedStatement.setLong(9, topicId);
             preparedStatement.setLong(10, itemTypeId);
             preparedStatement.executeUpdate();
 
-            // get the generated item_id
             ResultSet generatedKeys = preparedStatement.getGeneratedKeys();
             if (generatedKeys.next()) {
                 long itemId = generatedKeys.getLong(1);
-                updateLibraryItemAuthors(itemId, authors);
+                updateLibraryItemAuthors(itemId, textbook.getAuthors());
             }
         }
     }
 
-    private void updateLibraryItemAuthors(long itemId, String authors) throws SQLException {
-        String[] authorNames = authors.split(",");
-        for (String authorName : authorNames) {
+    private void updateLibraryItemAuthors(long itemId, List<String> authors) throws SQLException {
+        for (String authorName : authors) {
             long authorId = getAuthorIdByName(authorName.trim());
             if (authorId == -1) {
-                // if the author doesn't exist, create a new one
                 authorId = insertAuthor(authorName.trim());
             }
 
-            // update the library_item_authors table
             String updateAuthorsQuery = "INSERT INTO library_item_authors (item_id, author_id) VALUES (?, ?)";
             try (PreparedStatement updateAuthorsStatement = dbConnection.prepareStatement(updateAuthorsQuery)) {
                 updateAuthorsStatement.setLong(1, itemId);
@@ -375,7 +500,7 @@ public class Library implements Serializable {
                 }
             }
         }
-        return -1; // Return -1 if author not found
+        return -1;
     }
 
     private long insertAuthor(String authorName) throws SQLException {
@@ -392,46 +517,31 @@ public class Library implements Serializable {
         return -1;
     }
 
-//    private Optional<User> findBorrowerByUsernameOrEmail(String usernameOrEmail) {
-//        return this.users.stream()
-//                .filter(user -> user instanceof Borrower)
-//                .filter(borrower -> borrower.getUsername().equals(usernameOrEmail) || borrower.getEmail().equals(usernameOrEmail))
-//                .findFirst();
-//    }
-//
-//    public void populateLibraryWithMockValues() {
-//        Borrower mockBorrower1 = new Borrower("user1", "123", "borrower@email.com", "987654321");
-//        Borrower mockBorrower2 = new Borrower("user2", "123", "mockuser@email.com", "987654321");
-//        users.add(mockBorrower1);
-//        users.add(mockBorrower2);
-//
-//        Book mockBook1 = new Novel("Mock Novel 1", "Mock Author", BookGenre.ASTRONOMY, 1, new Date());
-//        Book mockBook2 = new Textbook("Mock Textbook 1", "Mock Author", ResearchDomain.COMPUTER_SCIENCE, 2,  new Date());
-//        Book mockBook3 = new Novel("Mock Novel 2", "Mock Author", BookGenre.FANTASY, 2, new Date());
-//        Book mockBook4 = new Textbook("Mock Textbook 2", "Mock Author", ResearchDomain.COMPUTER_SCIENCE, 1,  new Date());
-//
-//        booksCatalogue.add(mockBook1);
-//        booksCatalogue.add(mockBook2);
-//        booksCatalogue.add(mockBook3);
-//        booksCatalogue.add(mockBook4);
-//
-//        ArrayList<String> authors = new ArrayList<>();
-//        authors.add("author1");
-//        authors.add("author2");
-//
-//        // Mock periodicals
-//        Article mockArticle = new Article("Mock Article", new Date(), ResearchDomain.PHYSICS, 32, authors, "Publisher", "Abstract Text Here");
-//        Journal mockJournal = new Journal("Mock Journal", new Date(), ResearchDomain.BIOLOGY, 12, PublishingIntervals.MONTHLY, "Publisher", 5, 3);
-//
-//        scientificCatalogue.add(mockArticle);
-//        scientificCatalogue.add(mockJournal);
-//
-//    }
-//
-//
-//    public void addBook(Book newBook) {
-//        this.booksCatalogue.add(newBook);
-//    }
+
+    private void insertArticle(Article newArticle, Long topicId, Long itemTypeId) {
+        String insertQuery = "INSERT INTO library_items (title, description, page_no, citation_no, pub_date, topic_id, item_type_id) " +
+                "VALUES (?, ?, ?, ?, ?, ?, ?)";
+        try (PreparedStatement preparedStatement = dbConnection.prepareStatement(insertQuery, Statement.RETURN_GENERATED_KEYS)) {
+            preparedStatement.setString(1, newArticle.getTitle());
+            preparedStatement.setString(2, newArticle.getAbstractText());
+            preparedStatement.setInt(3, newArticle.getPageNumber());
+            preparedStatement.setLong(4, newArticle.getNumberOfCitations());
+            preparedStatement.setDate(5, Date.valueOf(newArticle.getPublicationDate()));
+            preparedStatement.setLong(6, topicId);
+            preparedStatement.setLong(7, itemTypeId);
+            preparedStatement.executeUpdate();
+
+            // get the generated item_id
+            ResultSet generatedKeys = preparedStatement.getGeneratedKeys();
+            if (generatedKeys.next()) {
+                long itemId = generatedKeys.getLong(1);
+                updateLibraryItemAuthors(itemId, newArticle.getAuthors());
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
 //
 //    public Book findBookById(BigInteger bookId) throws ItemNotFoundException {
 //        for (Book book : booksCatalogue) {

@@ -3,6 +3,7 @@ package bytelib.items.books;
 import bytelib.enums.BookGenre;
 import bytelib.items.Borrowable;
 
+import java.time.LocalDate;
 import java.util.Date;
 import java.util.Objects;
 
@@ -11,15 +12,17 @@ public class Novel extends Book implements Borrowable {
     private int volume;
     private BookGenre genre;
 
-    public Novel(String title, String author, BookGenre genre, int vol, Date pubDate) {
-        super(title, author, pubDate);
+    public Novel(String title, String author, BookGenre genre, int vol, LocalDate pubDate) {
+        super(title, pubDate);
+        this.author = author;
         this.volume = vol;
         this.genre = genre;
     }
 
-    public Novel(String title, String author, BookGenre genre, Date pubDate) {
-        super(title, author, pubDate);
+    public Novel(String title, String author, BookGenre genre, LocalDate pubDate) {
+        super(title, pubDate);
         this.volume = 1;
+        this.author = author;
         this.genre = genre;
     }
 

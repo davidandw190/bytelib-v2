@@ -5,21 +5,36 @@ import bytelib.items.Borrowable;
 import bytelib.items.Citeable;
 
 import java.text.SimpleDateFormat;
+import java.time.LocalDate;
 import java.util.Date;
+import java.util.List;
 import java.util.Objects;
 
 public class Textbook extends Book implements Borrowable, Citeable {
 
     protected int edition;
     protected ResearchDomain topic;
+    protected List<String> authors;
     protected long numberOfCitations;
 
 
-    public Textbook(String title, String author, ResearchDomain topic, int edition, Date pubDate) {
-        super(title, author, pubDate);
+    public Textbook(String title, List<String> authors, ResearchDomain topic, int edition, LocalDate pubDate) {
+        super(title, pubDate);
+        this.authors = authors;
         this.edition = edition;
         this.topic = topic;
         this.numberOfCitations = 0;
+    }
+
+
+    public Textbook(String title, String description, Integer pages, String publisher, Integer volume, Integer edition, Integer citations, LocalDate pubDate, List<String> authors) {
+        super(title, pubDate);
+        this.description = description;
+        this.numberOfPages = pages;
+        this.publisher = publisher;
+        this.authors = authors;
+        this.edition = edition;
+        this.numberOfCitations = citations;
     }
 
     @Override
@@ -91,5 +106,9 @@ public class Textbook extends Book implements Borrowable, Citeable {
 
     public void setNumberOfCitations(long numberOfCitations) {
         this.numberOfCitations = numberOfCitations;
+    }
+
+    public List<String> getAuthors() {
+        return this.authors;
     }
 }
