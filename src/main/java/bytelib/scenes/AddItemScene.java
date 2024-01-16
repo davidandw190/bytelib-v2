@@ -1,9 +1,11 @@
 package bytelib.scenes;
 
 import bytelib.Library;
-import bytelib.enums.LibraryItemType;
-import bytelib.enums.ResearchDomain;
-import bytelib.enums.UserType;
+import bytelib.enums.*;
+import bytelib.exceptions.DuplicateItemException;
+import bytelib.items.books.Novel;
+import bytelib.items.periodical.Article;
+import bytelib.items.periodical.Journal;
 import bytelib.users.User;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
@@ -11,11 +13,11 @@ import javafx.scene.control.*;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 
+import java.sql.Date;
 import java.time.LocalDate;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Locale;
-import java.util.stream.Collectors;
+import java.util.Optional;
 
 public class AddItemScene {
     private final VBox root;
@@ -119,25 +121,28 @@ public class AddItemScene {
                 "MACHINE LEARNING", "ENVIRONMENTAL SCIENCE","EDUCATION", "LAW", "OTHER");
 
 
-        Button addButton = createButton("Add Textbook", () -> handleAddTextbook(
-                getTextFromLabeledField(textbookLayout, "title"),
-                getTextFromLabeledField(textbookLayout, "description"),
-                getTextFromLabeledField(textbookLayout, "page"),
-                getTextFromLabeledField(textbookLayout, "publisher"),
-                getTextFromLabeledField(textbookLayout, "volume"),
-                getTextFromLabeledField(textbookLayout, "edition"),
-                getTextFromLabeledField(textbookLayout, "citation"),
-                getLocalDateFromLabeledDatePicker(textbookLayout, "publicationDate"),
-                getTextFromLabeledField(textbookLayout, "authors"),
-                ResearchDomain.valueOf(getSelectedItemFromLabeledComboBox(textbookLayout, "domain"))
-        ));
+        Button addButton = createButton("Add Textbook", () -> {
+            // Validate fields before calling handleAddTextbook
+                handleAddTextbook(
+                        getTextFromLabeledField(textbookLayout, "title"),
+                        getTextFromLabeledField(textbookLayout, "description"),
+                        getTextFromLabeledField(textbookLayout, "page"),
+                        getTextFromLabeledField(textbookLayout, "publisher"),
+                        getTextFromLabeledField(textbookLayout, "volume"),
+                        getTextFromLabeledField(textbookLayout, "edition"),
+                        getTextFromLabeledField(textbookLayout, "citation"),
+                        getLocalDateFromLabeledDatePicker(textbookLayout, "publicationDate"),
+                        getTextFromLabeledField(textbookLayout, "authors"),
+                        getSelectedItemFromLabeledComboBox(textbookLayout, "domain")
+                );
+        });
 
         Button backButton = createButton("Back", textbookStage::close);
 
         textbookLayout.getChildren().addAll(titleLabel, addButton, backButton);
 
 
-        Scene textbookScene = new Scene(scrollPane, 700, 700);
+        Scene textbookScene = new Scene(scrollPane, 600, 800);
         textbookStage.setScene(textbookScene);
         textbookStage.show();
     }
@@ -180,7 +185,7 @@ public class AddItemScene {
                 getTextFromLabeledField(articleLayout, "citation"),
                 getLocalDateFromLabeledDatePicker(articleLayout, "publicationDate"),
                 getTextFromLabeledField(articleLayout, "authors"),
-                ResearchDomain.valueOf(getSelectedItemFromLabeledComboBox(articleLayout, "domain"))
+                getSelectedItemFromLabeledComboBox(articleLayout, "domain")
         ));
 
         Button backButton = createButton("Back", articleStage::close);
@@ -193,9 +198,167 @@ public class AddItemScene {
         articleStage.show();
     }
 
-    private void handleAddArticle(String title, String abstractText, String pages, String citations, LocalDate pubDate, String authors, ResearchDomain domain) {
-        library.addItemToStock(LibraryItemType.ARTICLE, title, abstractText , Integer.parseInt(pages), null, null, null, null, Integer.parseInt(citations), pubDate, convertCommaSeparatedToList(authors), domain, null, null);
+    private void showJournalForm() {
+        Stage journalStage = new Stage();
+        journalStage.setTitle("Add New Journal");
+
+        VBox journalLayout = new VBox(10);
+        journalLayout.setStyle("-fx-background-color: #ecf0f1; -fx-padding: 20;");
+        journalLayout.setAlignment(Pos.CENTER);
+
+        Label titleLabel = new Label("Add New Journal");
+        titleLabel.setStyle("-fx-font-size: 24; -fx-font-weight: bold; -fx-text-fill: #2c3e50;");
+
+        ScrollPane scrollPane = new ScrollPane();
+        scrollPane.setContent(journalLayout);
+
+        journalLayout.getChildren().addAll(titleLabel);
+
+
+        addLabeledTextField(journalLayout, "Title:", "Enter Title", "title");
+        addLabeledTextArea(journalLayout, "Enter Abstract", "abstract");
+        addLabeledTextField(journalLayout, "Publisher:", "Enter Publisher", "publisher");
+        addLabeledNumberField(journalLayout, "Issue:", "Enter Issue No.", "issue");
+        addLabeledNumberField(journalLayout, "Number of Pages:", "Enter Page Number", "page");
+        addLabeledNumberField(journalLayout, "Citation Number:", "Enter Citation Number", "citation");
+        addLabeledDatePicker(journalLayout, "Publication Date:", "publicationDate");
+
+        addLabeledTextField(journalLayout, "Authors:", "Enter author names separated by commas", "authors");
+
+        addLabeledComboBox(journalLayout, "Domain:", "Select Journal Topic Or Domain", "domain",
+                "SCIENCE", "TECHNOLOGY", "ENGINEERING", "MEDICINE", "BIOLOGY", "CHEMISTRY", "PHYSICS",
+                "MATHEMATICS", "SOCIAL_SCIENCE", "HUMANITIES", "ECONOMICS", "COMPUTER_SCIENCE", "DISTRIBUTED_SYSTEMS",
+                "MACHINE_LEARNING", "ENVIRONMENTAL_SCIENCE","EDUCATION", "LAW", "OTHER");
+
+        addLabeledComboBox(journalLayout, "Publishing Interval:", "Select Journal Publishing Interval", "intervals",
+                "MONTHLY", "QUARTERLY",  "YEARLY", "OTHER");
+
+
+        Button addButton = createButton("Add Article", () -> handleAddJournal(
+                getTextFromLabeledField(journalLayout, "title"),
+                getTextFromLabeledField(journalLayout, "abstract"),
+                getTextFromLabeledField(journalLayout, "publisher"),
+                getTextFromLabeledField(journalLayout, "page"),
+                getTextFromLabeledField(journalLayout, "issue"),
+                getTextFromLabeledField(journalLayout, "citation"),
+                getLocalDateFromLabeledDatePicker(journalLayout, "publicationDate"),
+                getTextFromLabeledField(journalLayout, "authors"),
+                getSelectedItemFromLabeledComboBox(journalLayout, "domain"),
+                getSelectedItemFromLabeledComboBox(journalLayout, "intervals")
+        ));
+
+        Button backButton = createButton("Back", journalStage::close);
+
+        journalLayout.getChildren().addAll(addButton, backButton);
+
+
+        Scene textbookScene = new Scene(scrollPane, 600, 800);
+        journalStage.setScene(textbookScene);
+        journalStage.show();
     }
+
+    private void showNovelForm() {
+        Stage novelStage = new Stage();
+        novelStage.setTitle("Add Textbook");
+
+        VBox novelLayout = new VBox(10);
+        novelLayout.setStyle("-fx-background-color: #ecf0f1; -fx-padding: 20;");
+        novelLayout.setAlignment(Pos.CENTER);
+
+        Label titleLabel = new Label("Add Textbook");
+        titleLabel.setStyle("-fx-font-size: 24; -fx-font-weight: bold; -fx-text-fill: #2c3e50;");
+
+        ScrollPane scrollPane = new ScrollPane();
+        scrollPane.setContent(novelLayout);
+
+
+        addLabeledTextField(novelLayout, "Title:", "Enter Title", "title");
+        addLabeledTextArea(novelLayout,  "Enter Description", "description");
+        addLabeledNumberField(novelLayout, "Number of Pages:", "Enter Page Number", "page");
+        addLabeledTextField(novelLayout, "Publisher:", "Enter Publisher", "publisher");
+        addLabeledNumberField(novelLayout, "Volume:", "Enter Volume", "volume");
+        addLabeledDatePicker(novelLayout, "Publication Date:", "publicationDate");
+
+        addLabeledTextField(novelLayout, "Authors:", "Enter author names separated by commas", "authors");
+
+        addLabeledComboBox(novelLayout, "Genre:", "Select Genre", "genre",
+                "FANTASY", "SCIENCE_FICTION", "PHILOSOPHY", "PSYCHOLOGY", "POEMS", "ROMANCE", "SCIENCE",
+                "ASTRONOMY", "POLITICS", "PHYSICS", "OTHER");
+
+
+        Button addButton = createButton("Add Textbook", () -> handleAddNovel(
+                getTextFromLabeledField(novelLayout, "title"),
+                getTextFromLabeledField(novelLayout, "description"),
+                getTextFromLabeledField(novelLayout, "page"),
+                getTextFromLabeledField(novelLayout, "publisher"),
+                getTextFromLabeledField(novelLayout, "volume"),
+                getLocalDateFromLabeledDatePicker(novelLayout, "publicationDate"),
+                getTextFromLabeledField(novelLayout, "authors"),
+                getSelectedItemFromLabeledComboBox(novelLayout, "genre")
+        ));
+
+        Button backButton = createButton("Back", novelStage::close);
+
+        novelLayout.getChildren().addAll(titleLabel, addButton, backButton);
+
+
+        Scene novelScene = new Scene(scrollPane, 600, 800);
+        novelStage.setScene(novelScene);
+        novelStage.show();
+    }
+
+    private void handleAddNovel(String title, String description, String pages, String publisher, String volume, LocalDate publicationDate, String authors, String genreField) {
+
+        if (validateNovelFields(title, description, pages, publisher, volume, publicationDate, authors, genreField)) {
+            try {
+                library.addItemToStock(LibraryItemType.NOVEL, title, description , Integer.parseInt(pages), publisher, Integer.parseInt(volume),
+                        null, null, null, Date.valueOf(publicationDate), convertCommaSeparatedToList(authors),
+                        null, BookGenre.valueOf(genreField), null);
+
+                showSuccessPopup("Novel Added To Stock", "The novel has been successfully added to the library.");
+
+            } catch (Exception e) {
+                showErrorPopup("Error Adding Novel", e.getMessage());
+            }
+        }
+    }
+
+    private void handleAddJournal(String title, String abstractText, String publisher, String pages, String issue, String citations,
+                                  LocalDate pubDate, String authors, String domainField, String publishingIntervalField) {
+
+        if (validateJournalFields(title, abstractText, pages, publisher, issue, pages, pubDate, authors, domainField, publishingIntervalField)) {
+
+            try {
+                library.addItemToStock(LibraryItemType.JOURNAL, title, abstractText , Integer.parseInt(pages), publisher,
+                        null, Integer.parseInt(issue), null, Integer.parseInt(citations), Date.valueOf(pubDate),
+                        convertCommaSeparatedToList(authors), ResearchDomain.valueOf(domainField), null,
+                        PublishingIntervals.valueOf(publishingIntervalField));
+
+                showSuccessPopup("Journal Added To Stock", "The textbook has been successfully added to the library.");
+
+            } catch (Exception e) {
+                showErrorPopup("Error Adding Textbook", e.getMessage());
+            }
+        }
+    }
+
+    private void handleAddArticle(String title, String abstractText, String pages, String citations, LocalDate pubDate, String authors, String domainField) {
+
+        if (validateArticleFields(title, abstractText, pages, citations, pubDate, authors, domainField)) {
+            try {
+                library.addItemToStock(LibraryItemType.ARTICLE, title, abstractText , Integer.parseInt(pages), null,
+                        null, null, null, Integer.parseInt(citations), Date.valueOf(pubDate),
+                        convertCommaSeparatedToList(authors), ResearchDomain.valueOf(domainField), null, null);
+
+                showSuccessPopup("Article Added", "The article has been successfully added to the library.");
+
+            } catch (Exception e) {
+                showErrorPopup("Error Adding Article", e.getMessage());
+            }
+        }
+    }
+
+
 
     private List<String> convertCommaSeparatedToList(String s) {
         return Arrays.stream(s.split(","))
@@ -203,9 +366,8 @@ public class AddItemScene {
                 .toList();
     }
 
-    // Helper method to add labeled text field
     private void addLabeledTextField(VBox container, String labelText, String promptText, String id) {
-        Label label = new Label(labelText);2
+        Label label = new Label(labelText);
         label.setStyle("-fx-font-weight: bold;");
         TextField textField = createTextField(promptText);
         textField.setId(id);
@@ -220,7 +382,6 @@ public class AddItemScene {
         container.getChildren().addAll(label, textArea);
     }
 
-    // Helper method to add labeled date picker
     private void addLabeledDatePicker(VBox container, String labelText, String id) {
         Label label = new Label(labelText);
         label.setStyle("-fx-font-weight: bold;");
@@ -229,7 +390,6 @@ public class AddItemScene {
         container.getChildren().addAll(label, datePicker);
     }
 
-    // Helper method to add labeled combo box
     private void addLabeledComboBox(VBox container, String labelText, String promptText, String id, String... items) {
         Label label = new Label(labelText);
         label.setStyle("-fx-font-weight: bold;");
@@ -270,12 +430,21 @@ public class AddItemScene {
 
 
     private void handleAddTextbook(String title, String description, String pages, String publisher, String volume, String edition, String citations,
-                                   LocalDate pubDate, String authors, ResearchDomain domain) {
+                                   LocalDate pubDate, String authors, String domainField) {
 
+        if (validateTextbookFields(title, description, pages, publisher, volume, edition, citations, pubDate, authors, domainField)) {
 
-        library.addItemToStock(LibraryItemType.TEXTBOOK, title, description , Integer.parseInt(pages), null, Integer.parseInt(volume),
-                null,  Integer.parseInt(edition), Integer.parseInt(citations), pubDate, convertCommaSeparatedToList(authors), domain,
-                null, null);
+            try {
+                library.addItemToStock(LibraryItemType.TEXTBOOK, title, description, Integer.parseInt(pages), null, Integer.parseInt(volume),
+                        null, Integer.parseInt(edition), Integer.parseInt(citations), Date.valueOf(pubDate), convertCommaSeparatedToList(authors), ResearchDomain.valueOf(domainField),
+                        null, null);
+
+                showSuccessPopup("Textbook Added", "The textbook has been successfully added to the library.");
+            } catch (Exception e) {
+                showErrorPopup("Error Adding Textbook", e.getMessage());
+            }
+        }
+
     }
 
 
@@ -293,18 +462,6 @@ public class AddItemScene {
         return textField;
     }
 
-    private void showNovelForm() {
-        // Implement form for adding a novel
-        // You can create additional UI elements (labels, text fields, etc.) here
-        System.out.println("Adding a novel...");
-    }
-
-    private void showJournalForm() {
-        // Implement form for adding a journal
-        // You can create additional UI elements (labels, text fields, etc.) here
-        System.out.println("Adding a journal...");
-    }
-
     private Button createButton(String text, Runnable action) {
         Button button = new Button(text);
         button.setStyle("-fx-background-color: #008000; -fx-text-fill: white; -fx-font-size: 14;");
@@ -312,17 +469,235 @@ public class AddItemScene {
         button.setMinWidth(200);
         return button;
     }
-    
-    private void showErrorPopup(String title, String content) {
-        Alert alert = new Alert(Alert.AlertType.ERROR);
+
+    private void goBackToMainMenu() {
+        LibraryMenuScene menuScene = new LibraryMenuScene(primaryStage, library, loggedInUser);
+        primaryStage.setScene(new Scene(menuScene.getRoot(), 600, 500));
+    }
+
+    private boolean validateTextbookFields(String title, String description, String pages, String publisher, String volume, String edition, String citations,
+                                           LocalDate pubDate, String authors,  String domainField) {
+
+        if (title == null || title.isEmpty()) {
+            showErrorPopup("Invalid Input", "Please enter the title of the textbook.");
+            return false;
+        }
+
+        if (description == null || description.isEmpty()) {
+            showErrorPopup("Invalid Input", "Please provide a description for the textbook.");
+            return false;
+        }
+
+        if (pages == null || pages.isEmpty() || !isValidNumber(pages)) {
+            showErrorPopup("Invalid Input", "Please enter a valid number of pages for the textbook.");
+            return false;
+        }
+
+        if (edition == null || edition.isEmpty() || !isValidNumber(edition)) {
+            showErrorPopup("Invalid Input", "Please enter a valid edition for the textbook.");
+            return false;
+        }
+
+        if (citations == null || citations.isEmpty() || !isValidNumber(citations)) {
+            showErrorPopup("Invalid Input", "Please enter a valid citations number for the textbook.");
+            return false;
+        }
+
+        if (publisher == null || publisher.isEmpty()) {
+            showErrorPopup("Invalid Input", "Please enter the publisher of the textbook.");
+            return false;
+        }
+
+        if (volume == null || volume.isEmpty() || !isValidNumber(volume)) {
+            showErrorPopup("Invalid Input", "Please enter a valid volume for the textbook.");
+            return false;
+        }
+
+        if (pubDate == null) {
+            showErrorPopup("Invalid Input", "Please select the publication date of the textbook.");
+            return false;
+        }
+
+        if (domainField == null) {
+            showErrorPopup("Invalid Input","Please enter a domain for you textbook.");
+            return false;
+        }
+
+        if (authors == null || authors.isEmpty()) {
+            showErrorPopup("Invalid Input","Please enter at least one author for the textbook.");
+            return false;
+        }
+
+        return true;
+    }
+
+    private boolean validateArticleFields(String title, String abstractText, String pages, String citations,
+                                           LocalDate pubDate, String authors, String domainField) {
+
+        if (title == null || title.isEmpty()) {
+            showErrorPopup("Invalid Input", "Please enter the title of the article.");
+            return false;
+        }
+
+        if (abstractText == null || abstractText.isEmpty()) {
+            showErrorPopup("Invalid Input", "Please provide an abstract for the article.");
+            return false;
+        }
+
+        if (pages == null || pages.isEmpty() || !isValidNumber(pages)) {
+            showErrorPopup("Invalid Input", "Please enter a valid number of pages for the article.");
+            return false;
+        }
+
+        if (pubDate == null) {
+            showErrorPopup("Invalid Input", "Please select the publication date of the article.");
+            return false;
+        }
+
+        if (authors == null || authors.isEmpty()) {
+            showErrorPopup("Invalid Input","Please enter at least one author for the article.");
+            return false;
+        }
+
+        if (citations == null || citations.isEmpty() || !isValidNumber(citations)) {
+            showErrorPopup("Invalid Input", "Please enter a valid citations number for the article.");
+            return false;
+        }
+
+        if (domainField == null) {
+            showErrorPopup("Invalid Input","Please enter a domain for your article.");
+            return false;
+        }
+
+        return true;
+    }
+
+    private boolean validateJournalFields(String title, String abstractText, String pages, String publisher, String issue,  String citations,
+                                           LocalDate pubDate, String authors,  String domainField, String publishingInterval) {
+
+
+        if (title == null || title.isEmpty()) {
+            showErrorPopup("Invalid Input", "Please enter the title of the journal.");
+            return false;
+        }
+
+        if (abstractText == null || abstractText.isEmpty()) {
+            showErrorPopup("Invalid Input", "Please provide a description for the journal.");
+            return false;
+        }
+
+        if (pages == null || pages.isEmpty() || !isValidNumber(pages)) {
+            showErrorPopup("Invalid Input", "Please enter a valid number of pages for the journal.");
+            return false;
+        }
+
+        if (publisher == null || publisher.isEmpty()) {
+            showErrorPopup("Invalid Input", "Please enter the publisher of the journal.");
+            return false;
+        }
+
+        if (pubDate == null) {
+            showErrorPopup("Invalid Input", "Please select the publication date of the journal.");
+            return false;
+        }
+
+        if (authors == null || authors.isEmpty()) {
+            showErrorPopup("Invalid Input","Please enter at least one author for the journal.");
+            return false;
+        }
+
+        if (issue == null || issue.isEmpty() || !isValidNumber(issue)) {
+            showErrorPopup("Invalid Input", "Please enter a valid edition for the journal.");
+            return false;
+        }
+
+        if (citations == null || citations.isEmpty() || !isValidNumber(citations)) {
+            showErrorPopup("Invalid Input", "Please enter a valid citations number for the journal.");
+            return false;
+        }
+
+        if (domainField == null) {
+            showErrorPopup("Invalid Input","Please enter a domain for your journal.");
+            return false;
+        }
+
+        if (publishingInterval == null) {
+            showErrorPopup("Invalid Input","Please enter a domain for your journal.");
+            return false;
+        }
+
+        return true;
+    }
+
+    private boolean validateNovelFields(String title, String description, String pages, String publisher, String volume,
+                                           LocalDate pubDate, String authors,  String genreField) {
+
+        if (title == null || title.isEmpty()) {
+            showErrorPopup("Invalid Input", "Please enter the title of the novel.");
+            return false;
+        }
+
+        if (description == null || description.isEmpty()) {
+            showErrorPopup("Invalid Input", "Please provide a description for the novel.");
+            return false;
+        }
+
+        if (pages == null || pages.isEmpty() || !isValidNumber(pages)) {
+            showErrorPopup("Invalid Input", "Please enter a valid number of pages for the novel.");
+            return false;
+        }
+
+        if (publisher == null || publisher.isEmpty()) {
+            showErrorPopup("Invalid Input", "Please enter the publisher of the novel.");
+            return false;
+        }
+
+        if (volume == null || volume.isEmpty() || !isValidNumber(volume)) {
+            showErrorPopup("Invalid Input", "Please enter a valid volume for the novel.");
+            return false;
+        }
+
+        if (pubDate == null) {
+            showErrorPopup("Invalid Input", "Please select the publication date of the novel.");
+            return false;
+        }
+
+        if (authors == null || authors.isEmpty()) {
+            showErrorPopup("Invalid Input","Please enter at least one author for the novel.");
+            return false;
+        }
+
+        if (genreField == null) {
+            showErrorPopup("Invalid Input","Please enter a genre for your novel.");
+            return false;
+        }
+
+        return true;
+    }
+
+
+    private boolean isValidNumber(String number) {
+        try {
+            double doubleValue = Double.parseDouble(number);
+            return doubleValue > 0; // Ensure the number is positive
+        } catch (NumberFormatException e) {
+            return false; // Not a valid number
+        }
+    }
+
+    private void showSuccessPopup(String title, String content) {
+        Alert alert = new Alert(Alert.AlertType.INFORMATION);
         alert.setTitle(title);
         alert.setHeaderText(null);
         alert.setContentText(content);
         alert.showAndWait();
     }
 
-    private void goBackToMainMenu() {
-        LibraryMenuScene menuScene = new LibraryMenuScene(primaryStage, library, loggedInUser);
-        primaryStage.setScene(new Scene(menuScene.getRoot(), 500, 400));
+    private void showErrorPopup(String title, String content) {
+        Alert alert = new Alert(Alert.AlertType.ERROR);
+        alert.setTitle(title);
+        alert.setHeaderText(null);
+        alert.setContentText(content);
+        alert.showAndWait();
     }
 }

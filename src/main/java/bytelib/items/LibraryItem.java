@@ -2,25 +2,19 @@ package bytelib.items;
 
 
 import java.io.Serializable;
-import java.math.BigInteger;
-import java.time.LocalDate;
-import java.util.Date;
+import java.sql.Date;
 import java.util.Objects;
 
 public abstract class LibraryItem implements Serializable {
 
-    protected final BigInteger id;
+    protected Long id;
     protected String title;
     protected String author;
 
     protected boolean isAvailable;
-    protected LocalDate publicationDate;
+    protected Date publicationDate;
 
-    private static BigInteger currentIdNumber = BigInteger.ZERO;
-
-    public LibraryItem(String title, LocalDate publicationDate) {
-        LibraryItem.currentIdNumber = currentIdNumber.add(BigInteger.ONE);
-        this.id = currentIdNumber;
+    public LibraryItem(String title, Date publicationDate) {
         this.title = title;
         this.publicationDate = publicationDate;
         this.isAvailable = true;
@@ -40,10 +34,6 @@ public abstract class LibraryItem implements Serializable {
     }
 
 
-    public BigInteger getId() {
-        return id;
-    }
-
     public String getTitle() {
         return title;
     }
@@ -62,7 +52,7 @@ public abstract class LibraryItem implements Serializable {
     }
 
 
-    public void setPublicationDate(LocalDate publicationDate) {
+    public void setPublicationDate(Date publicationDate) {
         this.publicationDate = publicationDate;
     }
 

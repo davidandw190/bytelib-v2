@@ -4,7 +4,7 @@ import bytelib.enums.ResearchDomain;
 import bytelib.items.Citeable;
 
 import java.text.SimpleDateFormat;
-import java.time.LocalDate;
+import java.sql.Date;
 import java.util.List;
 import java.util.Objects;
 
@@ -14,7 +14,7 @@ public class Article extends Periodical implements Citeable {
     private String abstractText;
 
 
-    public Article(String title, String abstractText, String publisher, Integer pageNumber, Integer numberOfCitations, LocalDate pubDate, List<String> authors, ResearchDomain domain ) {
+    public Article(String title, String abstractText, String publisher, Integer pageNumber, Integer numberOfCitations, Date pubDate, List<String> authors, ResearchDomain domain ) {
         super(title, pubDate, domain, publisher, numberOfCitations);
         this.authors = authors;
         this.pageNumber = pageNumber;
@@ -82,7 +82,7 @@ public class Article extends Periodical implements Citeable {
         this.abstractText = abstractText;
     }
 
-    public LocalDate getPublicationDate() {
+    public Date getPublicationDate() {
         return this.publicationDate;
     }
 }

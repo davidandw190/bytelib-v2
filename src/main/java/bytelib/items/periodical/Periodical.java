@@ -4,7 +4,7 @@ import bytelib.enums.ResearchDomain;
 import bytelib.items.Citeable;
 import bytelib.items.LibraryItem;
 
-import java.time.LocalDate;
+import java.sql.Date;
 import java.util.Objects;
 
 public abstract class Periodical extends LibraryItem implements Citeable {
@@ -13,13 +13,13 @@ public abstract class Periodical extends LibraryItem implements Citeable {
     private String publisher;
     private ResearchDomain domain;
 
-    public Periodical(String title, LocalDate pubDate, ResearchDomain domain) {
+    public Periodical(String title, Date pubDate, ResearchDomain domain) {
         super(title, pubDate);
         this.domain = domain;
         this.numberOfCitations = 0;
     }
 
-    public Periodical(String title, LocalDate pubDate, ResearchDomain domain, String publisher, int numberOfCitations) {
+    public Periodical(String title, Date pubDate, ResearchDomain domain, String publisher, int numberOfCitations) {
         super(title, pubDate);
         this.domain = domain;
         this.publisher = publisher;

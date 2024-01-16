@@ -7,6 +7,7 @@ import bytelib.items.LibraryItem;
 import bytelib.users.Borrower;
 
 import java.time.LocalDate;
+import java.sql.Date;
 import java.util.Objects;
 
 public abstract class Book extends LibraryItem implements Borrowable {
@@ -18,7 +19,7 @@ public abstract class Book extends LibraryItem implements Borrowable {
 
     protected LocalDate returnDate;
 
-    public Book(String title, LocalDate pubDate) {
+    public Book(String title, Date pubDate) {
         super(title, pubDate);
         this.isAvailable = true;
         this.returnDate = null;
@@ -88,7 +89,7 @@ public abstract class Book extends LibraryItem implements Borrowable {
         this.rating = rating;
     }
 
-    public LocalDate getPublicationDate() {
+    public Date getPublicationDate() {
         return this.publicationDate;
     }
 

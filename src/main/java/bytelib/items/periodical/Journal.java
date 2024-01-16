@@ -1,12 +1,11 @@
 package bytelib.items.periodical;
 
-import bytelib.enums.ResearchDomain;
 import bytelib.enums.PublishingIntervals;
+import bytelib.enums.ResearchDomain;
 import bytelib.items.Citeable;
 
+import java.sql.Date;
 import java.text.SimpleDateFormat;
-import java.time.LocalDate;
-import java.util.Date;
 import java.util.List;
 import java.util.Objects;
 
@@ -20,7 +19,7 @@ public class Journal extends Periodical implements Citeable {
     private int issue;
 
 
-    public Journal(String title, String abstractText, String publisher, Integer volume, Integer issue, Integer pageNumber, Integer numberOfCitations, LocalDate pubDate, List<String> authors, ResearchDomain domain, PublishingIntervals publishingInterval) {
+    public Journal(String title, String abstractText, String publisher, Integer volume, Integer issue, Integer pageNumber, Integer numberOfCitations, Date pubDate, List<String> authors, ResearchDomain domain, PublishingIntervals publishingInterval) {
         super(title, pubDate, domain, publisher, numberOfCitations);
         this.publishingInterval = publishingInterval;
         this.authors = authors;
@@ -123,7 +122,7 @@ public class Journal extends Periodical implements Citeable {
         this.issue = issue;
     }
 
-    public LocalDate getPublicationDate() {
+    public Date getPublicationDate() {
         return this.publicationDate;
     }
 }

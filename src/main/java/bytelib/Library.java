@@ -1,6 +1,8 @@
 package bytelib;
 
 import bytelib.enums.*;
+import bytelib.exceptions.DuplicateItemException;
+import bytelib.items.books.Novel;
 import bytelib.items.books.Textbook;
 import bytelib.items.periodical.Article;
 import bytelib.items.periodical.Journal;
@@ -12,7 +14,6 @@ import java.io.Serializable;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.sql.*;
-import java.time.LocalDate;
 import java.util.List;
 
 
@@ -120,69 +121,6 @@ public class Library implements Serializable {
         return null;
     }
 
-//    // Utility method to check if a book with the given title already exists
-//    private boolean canItemBeAdded(LibraryItem newItem) {
-//        if (newItem instanceof Book) {
-//            return canBookBeAdded((Book) newItem);
-//        } else if (newItem instanceof Periodical) {
-//            return canPeriodicalBeAdded((Periodical) newItem);
-//        } else {
-//            throw new IllegalArgumentException("Invalid item type");
-//            // TODO: add custom exception here
-//        }
-//    }
-
-
-//    public void requestBorrow(Borrower borrower, Borrowable borrowable) throws ItemNotAvailableForBorrowException {
-//        if (borrowable.isAvailable()) {
-//            BorrowRequest borrowRequest = borrowable.initiateBorrowRequest(borrower);
-//            borrowRequests.add(borrowRequest);
-//            borrowable.setStatusBorrowed();
-//        } else {
-//            throw new ItemNotAvailableForBorrowException("Book not available for borrowing.");
-//        }
-//    }
-//
-//    public void acceptBorrowRequest(BorrowRequest borrowRequest) {
-//        borrowRequest.acceptRequest(bookReturnDeadline);
-//    }
-//
-//    public double getReturnFee(BorrowRequest request) {
-//        return request.computeReturnFee(perDayFine, bookReturnDeadline);
-//    }
-//
-//    public void rejectBorrowRequest(BorrowRequest borrowRequest) {
-//        borrowRequest.rejectRequest();
-//    }
-//
-//    public void returnBorrowedItem(BorrowRequest borrowRequest) {
-//        borrowRequest.returnItem();
-//        double returnFee = borrowRequest.computeReturnFee(this.perDayFine, this.bookReturnDeadline);
-//        System.out.println("asadas");
-//    }
-//
-////    public void payOverdueFee(BorrowRequest borrowRequest, double fee) {
-////        borrowRequest.getBorrowable().setStatusAvailable();
-////        borrowRequest.getBorrower().
-////
-////    }
-//
-//    public void checkOverdueItems() {
-//        for (BorrowRequest borrowRequest : borrowRequests) {
-//            if (borrowRequest.checkIfOverdue()) {
-//                double fine = borrowRequest.computeReturnFee((int) perDayFine, bookReturnDeadline);
-//                System.out.println("Item overdue! Fine: " + fine);
-//            }
-//        }
-//    }
-//
-//    public List<BorrowRequest> getUserBorrowRequests(Borrower borrower) {
-//        return borrowRequests.stream()
-//                .filter(request -> request.getBorrower().equals(borrower))
-//                .collect(Collectors.toList());
-//    }
-//
-//
     public boolean isUsernameTaken(String username) {
         try {
             String sql = "SELECT * FROM users WHERE username = ?";
@@ -224,11 +162,11 @@ public class Library implements Serializable {
                                   Integer issue,
                                   Integer edition,
                                   Integer citations,
-                                  LocalDate pubDate,
+                                  Date pubDate,
                                   List<String> authors,
                                   ResearchDomain domain,
                                   BookGenre genre,
-                                  PublishingIntervals publishingInterval) {
+                                  PublishingIntervals publishingInterval) throws DuplicateItemException {
         try {
             dbConnection.setAutoCommit(false);
 
@@ -245,15 +183,14 @@ public class Library implements Serializable {
                     itemTypeId = getItemTypeIdByName(LibraryItemType.NOVEL.name());
 
                     if (isItemExists(title, itemTypeId)) {
-                        System.out.println(itemType.name() + " with title '" + title + "' already exists.");
-                        return false;
+                        throw new DuplicateItemException(itemType.name() + " with title '" + title + "' already exists.");
                     }
 
                     Long genreId = getGenreIdByName(genre.name());
 
-                    Textbook textbook = new Textbook(title, description, pages, publisher, volume, edition, citations, pubDate, authors);
+                    Novel newNovel = new Novel(title, description, pages, publisher, edition, pubDate, authors, genre);
 
-                    insertTextbook(textbook, genreId, itemTypeId);
+                    insertNovel(newNovel, genreId, itemTypeId);
 
                 }
 
@@ -262,10 +199,8 @@ public class Library implements Serializable {
 
 
                     if (isItemExists(title, itemTypeId)) {
-                        System.out.println(itemType.name() + " with title '" + title + "' already exists.");
-                        return false;
+                        throw new DuplicateItemException(itemType.name() + " with title '" + title + "' already exists.");
                     }
-
 
                     Article newArticle = new Article(title, description, publisher, pages, citations, pubDate, authors, domain);
 
@@ -278,8 +213,7 @@ public class Library implements Serializable {
                     itemTypeId = getItemTypeIdByName(LibraryItemType.TEXTBOOK.name());
 
                     if (isItemExists(title, itemTypeId)) {
-                        System.out.println(itemType.name() + " with title '" + title + "' already exists.");
-                        return false;
+                        throw new DuplicateItemException(itemType.name() + " with title '" + title + "' already exists.");
                     }
 
                     Long topicId = getTopicIdByName(domain.name());
@@ -293,8 +227,7 @@ public class Library implements Serializable {
                     itemTypeId = getItemTypeIdByName(LibraryItemType.JOURNAL.name());
 
                     if (isItemExists(title, itemTypeId)) {
-                        System.out.println(itemType.name() + " with title '" + title + "' already exists.");
-                        return false;
+                        throw new DuplicateItemException(itemType.name() + " with title '" + title + "' already exists.");
                     }
 
                     Journal newJournal = new Journal(title, description, publisher, volume, issue, pages, citations, pubDate, authors, domain, publishingInterval);
@@ -331,6 +264,30 @@ public class Library implements Serializable {
         }
     }
 
+    private void insertNovel(Novel newNovel, Long genreId, long itemTypeId) {
+        String insertQuery = "INSERT INTO library_items (title, description, page_no, publisher, volume, pub_date, genre_id, item_type_id) " +
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+        try (PreparedStatement preparedStatement = dbConnection.prepareStatement(insertQuery, Statement.RETURN_GENERATED_KEYS)) {
+            preparedStatement.setString(1, newNovel.getTitle());
+            preparedStatement.setString(2, newNovel.getDescription());
+            preparedStatement.setInt(3, newNovel.getNumberOfPages());
+            preparedStatement.setString(4, newNovel.getPublisher());
+            preparedStatement.setInt(5, newNovel.getVolume());
+            preparedStatement.setDate(6, newNovel.getPublicationDate());
+            preparedStatement.setLong(7, genreId);
+            preparedStatement.setLong(8, itemTypeId);
+            preparedStatement.executeUpdate();
+
+            ResultSet generatedKeys = preparedStatement.getGeneratedKeys();
+            if (generatedKeys.next()) {
+                long itemId = generatedKeys.getLong(1);
+                updateLibraryItemAuthors(itemId, newNovel.getAuthors());
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
     private Long getGenreIdByName(String name) {
         String sql = "SELECT genre_id FROM book_genre WHERE display_name = ?";
         try (PreparedStatement preparedStatement = dbConnection.prepareStatement(sql)) {
@@ -364,20 +321,19 @@ public class Library implements Serializable {
     }
 
     private void insertJournal(Journal newJournal, Long topicId, Long itemTypeId, Long publishingIntervalId) {
-        String insertQuery = "INSERT INTO library_items (title, description, publisher, volume, issue, page_no, citation_no, pub_date, topic_id, item_type_id, publishing_interval_id) " +
-                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+        String insertQuery = "INSERT INTO library_items (title, description, publisher, issue, page_no, citation_no, pub_date, topic_id, item_type_id, publishing_interval_id) " +
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
         try (PreparedStatement preparedStatement = dbConnection.prepareStatement(insertQuery, Statement.RETURN_GENERATED_KEYS)) {
             preparedStatement.setString(1, newJournal.getTitle());
             preparedStatement.setString(2, newJournal.getAbstractText());
             preparedStatement.setString(3, newJournal.getPublisher());
-            preparedStatement.setInt(4, newJournal.getVolume());
-            preparedStatement.setInt(5, newJournal.getIssue());
-            preparedStatement.setInt(6, newJournal.getPageNumber());
-            preparedStatement.setLong(7, newJournal.getNumberOfCitations());
-            preparedStatement.setDate(8, Date.valueOf(newJournal.getPublicationDate()));
-            preparedStatement.setLong(9, topicId);
-            preparedStatement.setLong(10, itemTypeId);
-            preparedStatement.setLong(11, publishingIntervalId);
+            preparedStatement.setInt(4, newJournal.getIssue());
+            preparedStatement.setInt(5, newJournal.getPageNumber());
+            preparedStatement.setLong(6, newJournal.getNumberOfCitations());
+            preparedStatement.setDate(7, newJournal.getPublicationDate());
+            preparedStatement.setLong(8, topicId);
+            preparedStatement.setLong(9, itemTypeId);
+            preparedStatement.setLong(10, publishingIntervalId);
             preparedStatement.executeUpdate();
 
 
@@ -461,9 +417,9 @@ public class Library implements Serializable {
             preparedStatement.setString(4, textbook.getPublisher());
             preparedStatement.setInt(5, textbook.getEdition());
             preparedStatement.setLong(6, textbook.getNumberOfCitations());
-            preparedStatement.setDate(7, Date.valueOf(textbook.getPublicationDate()));
-            preparedStatement.setLong(9, topicId);
-            preparedStatement.setLong(10, itemTypeId);
+            preparedStatement.setDate(7, textbook.getPublicationDate());
+            preparedStatement.setLong(8, topicId);
+            preparedStatement.setLong(9, itemTypeId);
             preparedStatement.executeUpdate();
 
             ResultSet generatedKeys = preparedStatement.getGeneratedKeys();
@@ -481,13 +437,31 @@ public class Library implements Serializable {
                 authorId = insertAuthor(authorName.trim());
             }
 
-            String updateAuthorsQuery = "INSERT INTO library_item_authors (item_id, author_id) VALUES (?, ?)";
-            try (PreparedStatement updateAuthorsStatement = dbConnection.prepareStatement(updateAuthorsQuery)) {
-                updateAuthorsStatement.setLong(1, itemId);
-                updateAuthorsStatement.setLong(2, authorId);
-                updateAuthorsStatement.executeUpdate();
+            // to check if the author is already associated with the book
+            if (!isAuthorAssociatedWithItem(itemId, authorId)) {
+                String updateAuthorsQuery = "INSERT INTO library_item_authors (item_id, author_id) VALUES (?, ?)";
+                try (PreparedStatement updateAuthorsStatement = dbConnection.prepareStatement(updateAuthorsQuery)) {
+                    updateAuthorsStatement.setLong(1, itemId);
+                    updateAuthorsStatement.setLong(2, authorId);
+                    updateAuthorsStatement.executeUpdate();
+                }
             }
         }
+    }
+
+    private boolean isAuthorAssociatedWithItem(long itemId, long authorId) throws SQLException {
+        String query = "SELECT COUNT(*) FROM library_item_authors WHERE item_id = ? AND author_id = ?";
+        try (PreparedStatement preparedStatement = dbConnection.prepareStatement(query)) {
+            preparedStatement.setLong(1, itemId);
+            preparedStatement.setLong(2, authorId);
+            try (ResultSet resultSet = preparedStatement.executeQuery()) {
+                if (resultSet.next()) {
+                    int count = resultSet.getInt(1);
+                    return count > 0;
+                }
+            }
+        }
+        return false;
     }
 
     private long getAuthorIdByName(String authorName) throws SQLException {
@@ -526,7 +500,7 @@ public class Library implements Serializable {
             preparedStatement.setString(2, newArticle.getAbstractText());
             preparedStatement.setInt(3, newArticle.getPageNumber());
             preparedStatement.setLong(4, newArticle.getNumberOfCitations());
-            preparedStatement.setDate(5, Date.valueOf(newArticle.getPublicationDate()));
+            preparedStatement.setDate(5, newArticle.getPublicationDate());
             preparedStatement.setLong(6, topicId);
             preparedStatement.setLong(7, itemTypeId);
             preparedStatement.executeUpdate();
@@ -541,41 +515,5 @@ public class Library implements Serializable {
             throw new RuntimeException(e);
         }
     }
-
-//
-//    public Book findBookById(BigInteger bookId) throws ItemNotFoundException {
-//        for (Book book : booksCatalogue) {
-//            if (book.getId().equals(bookId)) {
-//                return book;
-//            }
-//        }
-//        throw new ItemNotFoundException("Book with ID " + bookId + " not found.");
-//    }
-//
-//    public Periodical findPeriodicalById(BigInteger itemId) throws ItemNotFoundException {
-//        for (Periodical item : scientificCatalogue) {
-//            if (item.getId().equals(itemId)) {
-//                return item;
-//            }
-//        }
-//        throw new ItemNotFoundException("Item with ID " + itemId + " not found.");
-//    }
-//
-//    public void addPeriodical(Periodical newPeriodical) {
-//        this.scientificCatalogue.add(newPeriodical);
-//
-//    }
-//
-//    public void removeBook(Book selectedBook) throws ItemCurrentlyBorrowedException {
-//        if (!selectedBook.isAvailable()) {
-//            throw new ItemCurrentlyBorrowedException("The item you want to remove is currently borrowed by a user.");
-//        }
-//
-//        booksCatalogue.remove(selectedBook);
-//    }
-//
-//    public void removePeriodical(Periodical selectedItem) {
-//        scientificCatalogue.remove(selectedItem);
-//    }
 
 }
