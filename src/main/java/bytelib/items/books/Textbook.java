@@ -14,21 +14,37 @@ public class Textbook extends Book implements Borrowable, Citeable {
 
     protected int edition;
     protected ResearchDomain topic;
+    protected String description;
     protected List<String> authors;
     protected long numberOfCitations;
+    protected int numberOfPages;
 
-
-    public Textbook(String title, List<String> authors, ResearchDomain topic, int edition, Date pubDate) {
-        super(title, pubDate);
+    public Textbook(Long id, String title, String description, Integer pages, String publisher, Integer edition, Integer citations, Date pubDate, List<String> authors, ResearchDomain topic) {
+        super(id, title, pubDate, pages);
+        this.description = description;
+        this.numberOfPages = pages;
+        this.publisher = publisher;
         this.authors = authors;
-        this.edition = edition;
         this.topic = topic;
-        this.numberOfCitations = 0;
+        this.edition = edition;
+        this.numberOfCitations = citations;
     }
 
 
-    public Textbook(String title, String description, Integer pages, String publisher, Integer volume, Integer edition, Integer citations, Date pubDate, List<String> authors) {
-        super(title, pubDate);
+
+    public Textbook(String title, String description, Integer pages, String publisher, Integer edition, Integer citations, Date pubDate, List<String> authors, ResearchDomain topic) {
+        super(title, pubDate, pages);
+        this.description = description;
+        this.numberOfPages = pages;
+        this.publisher = publisher;
+        this.topic = topic;
+        this.authors = authors;
+        this.edition = edition;
+        this.numberOfCitations = citations;
+    }
+
+    public Textbook(String title, String description, Integer pages, String publisher, Integer edition, Integer citations, Date pubDate, List<String> authors) {
+        super(title, pubDate, pages);
         this.description = description;
         this.numberOfPages = pages;
         this.publisher = publisher;

@@ -2,11 +2,8 @@ package bytelib.scenes;
 
 import bytelib.Library;
 import bytelib.enums.*;
-import bytelib.exceptions.DuplicateItemException;
-import bytelib.items.books.Novel;
-import bytelib.items.periodical.Article;
-import bytelib.items.periodical.Journal;
-import bytelib.users.User;
+import bytelib.users.*;
+import bytelib.items.*;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
@@ -17,7 +14,6 @@ import java.sql.Date;
 import java.time.LocalDate;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Optional;
 
 public class AddItemScene {
     private final VBox root;

@@ -12,20 +12,24 @@ import java.util.Objects;
 public class Journal extends Periodical implements Citeable {
     private PublishingIntervals publishingInterval;
     private String publisher;
-    private Integer pageNumber;
     private List<String> authors;
     private String abstractText;
-    private int volume;
     private int issue;
 
 
-    public Journal(String title, String abstractText, String publisher, Integer volume, Integer issue, Integer pageNumber, Integer numberOfCitations, Date pubDate, List<String> authors, ResearchDomain domain, PublishingIntervals publishingInterval) {
+    public Journal(String title, String abstractText, String publisher, Integer issue, Integer pageNumber, Integer numberOfCitations, Date pubDate, List<String> authors, ResearchDomain domain, PublishingIntervals publishingInterval) {
         super(title, pubDate, domain, publisher, numberOfCitations);
         this.publishingInterval = publishingInterval;
         this.authors = authors;
-        this.volume = volume;
         this.issue = issue;
-        this.pageNumber = pageNumber;
+        this.abstractText = abstractText;
+    }
+
+    public Journal(Long id, String title, String abstractText, String publisher, Integer issue, Integer pageNumber, Integer numberOfCitations, Date pubDate, List<String> authors, ResearchDomain domain, PublishingIntervals publishingInterval) {
+        super(id, title, pubDate, domain, publisher, numberOfCitations, pageNumber);
+        this.publishingInterval = publishingInterval;
+        this.authors = authors;
+        this.issue = issue;
         this.abstractText = abstractText;
     }
 
@@ -36,7 +40,7 @@ public class Journal extends Periodical implements Citeable {
         String pubDateStr = dateFormat.format(publicationDate);
 
         return String.format("%s. \"%s.\" %d.%d (%s): %d citations.",
-                publisher, title, volume, issue, pubDateStr, getNumberOfCitations());
+                publisher, title, issue, pubDateStr, getNumberOfCitations());
     }
 
     @Override
@@ -53,13 +57,12 @@ public class Journal extends Periodical implements Citeable {
         Journal journal = (Journal) obj;
         return publishingInterval == journal.publishingInterval &&
                 publisher.equals(journal.publisher) &&
-                volume == journal.volume &&
                 issue == journal.issue;
     }
 
     @Override
     public int hashCode() {
-        int result = Objects.hash(super.hashCode(), publishingInterval, volume, issue);
+        int result = Objects.hash(super.hashCode(), publishingInterval, issue);
         result = 31 * result + publisher.length();
         return result;
     }
@@ -104,14 +107,6 @@ public class Journal extends Periodical implements Citeable {
 
     public void setAbstractText(String abstractText) {
         this.abstractText = abstractText;
-    }
-
-    public int getVolume() {
-        return volume;
-    }
-
-    public void setVolume(int volume) {
-        this.volume = volume;
     }
 
     public int getIssue() {

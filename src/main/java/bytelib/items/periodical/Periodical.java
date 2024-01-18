@@ -13,14 +13,15 @@ public abstract class Periodical extends LibraryItem implements Citeable {
     private String publisher;
     private ResearchDomain domain;
 
-    public Periodical(String title, Date pubDate, ResearchDomain domain) {
-        super(title, pubDate);
+    public Periodical(Long id, String title, Date pubDate, ResearchDomain domain, String publisher, int numberOfCitations, int pageNumber) {
+        super(id, title, pubDate, pageNumber);
         this.domain = domain;
-        this.numberOfCitations = 0;
+        this.numberOfCitations = numberOfCitations;
+        this.publisher = publisher;
     }
 
     public Periodical(String title, Date pubDate, ResearchDomain domain, String publisher, int numberOfCitations) {
-        super(title, pubDate);
+        super(title, pubDate, 0);
         this.domain = domain;
         this.publisher = publisher;
         this.numberOfCitations = numberOfCitations;
@@ -42,19 +43,11 @@ public abstract class Periodical extends LibraryItem implements Citeable {
 
     @Override
     public Long getNumberOfCitations() {
-        return numberOfCitations;
+        return this.numberOfCitations;
     }
 
     public void setNumberOfCitations(long numberOfCitations) {
         this.numberOfCitations = numberOfCitations;
-    }
-
-    public ResearchDomain getDomain() {
-        return domain;
-    }
-
-    public void setDomain(ResearchDomain domain) {
-        this.domain = domain;
     }
 
     public String getPublisher() {
@@ -65,5 +58,11 @@ public abstract class Periodical extends LibraryItem implements Citeable {
         this.publisher = publisher;
     }
 
+    public ResearchDomain getDomain() {
+        return domain;
+    }
 
+    public void setDomain(ResearchDomain domain) {
+        this.domain = domain;
+    }
 }

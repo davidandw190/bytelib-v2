@@ -83,7 +83,7 @@ public class LibraryMenuScene {
     }
 
     private void viewScientificCatalogue() {
-        System.out.println("Viewing Scientific Catalogue...");
+        showCatalogueScene();
     }
 
     private void handleBorrowBook() {
@@ -173,4 +173,8 @@ public class LibraryMenuScene {
         primaryStage.setScene(new Scene(mainMenuScene.getRoot(), 500, 400));
     }
 
+    private void showCatalogueScene() {
+        DisplayItemsScene scene = new DisplayItemsScene(primaryStage, library, loggedInUser);
+        primaryStage.setScene(new Scene(scene.getRoot(), 700, 700));
+    }
 }

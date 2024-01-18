@@ -13,6 +13,9 @@ module org.bytelib.bytelib {
     requires jbcrypt;
 
     opens bytelib to javafx.fxml;
+    opens bytelib.items to javafx.base;
+    opens bytelib.items.periodical to javafx.base;
+    opens bytelib.items.books to javafx.base;
     exports bytelib;
     exports bytelib.scenes;
     opens bytelib.scenes to javafx.fxml;

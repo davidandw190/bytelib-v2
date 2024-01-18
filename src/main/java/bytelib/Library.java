@@ -2,6 +2,7 @@ package bytelib;
 
 import bytelib.enums.*;
 import bytelib.exceptions.DuplicateItemException;
+import bytelib.items.LibraryItem;
 import bytelib.items.books.Novel;
 import bytelib.items.books.Textbook;
 import bytelib.items.periodical.Article;
@@ -14,6 +15,7 @@ import java.io.Serializable;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.sql.*;
+import java.util.ArrayList;
 import java.util.List;
 
 
@@ -170,10 +172,6 @@ public class Library implements Serializable {
         try {
             dbConnection.setAutoCommit(false);
 
-            if (title == null || title.isEmpty() || description == null || description.isEmpty()) {
-                throw new IllegalArgumentException("Title and description cannot be empty");
-            }
-
             long itemTypeId = -1;
 
             assert itemType != null;
@@ -218,7 +216,7 @@ public class Library implements Serializable {
 
                     Long topicId = getTopicIdByName(domain.name());
 
-                    Textbook textbook = new Textbook(title, description, pages, publisher, volume, edition, citations, pubDate, authors);
+                    Textbook textbook = new Textbook(title, description, pages, publisher, edition, citations, pubDate, authors);
 
                     insertTextbook(textbook, topicId, itemTypeId);
                 }
@@ -230,11 +228,11 @@ public class Library implements Serializable {
                         throw new DuplicateItemException(itemType.name() + " with title '" + title + "' already exists.");
                     }
 
-                    Journal newJournal = new Journal(title, description, publisher, volume, issue, pages, citations, pubDate, authors, domain, publishingInterval);
-
                     Long topicId = getTopicIdByName(domain.name());
-
                     Long publishingIntervalId = getPublishingIntervalIdByName(publishingInterval.name());
+
+                    Journal newJournal = new Journal(title, description, publisher, issue, pages, citations, pubDate, authors, domain, publishingInterval);
+
 
                     insertJournal(newJournal, topicId, itemTypeId, publishingIntervalId);
                 }
@@ -270,7 +268,7 @@ public class Library implements Serializable {
         try (PreparedStatement preparedStatement = dbConnection.prepareStatement(insertQuery, Statement.RETURN_GENERATED_KEYS)) {
             preparedStatement.setString(1, newNovel.getTitle());
             preparedStatement.setString(2, newNovel.getDescription());
-            preparedStatement.setInt(3, newNovel.getNumberOfPages());
+            preparedStatement.setInt(3, newNovel.getPageNumber());
             preparedStatement.setString(4, newNovel.getPublisher());
             preparedStatement.setInt(5, newNovel.getVolume());
             preparedStatement.setDate(6, newNovel.getPublicationDate());
@@ -413,7 +411,7 @@ public class Library implements Serializable {
         try (PreparedStatement preparedStatement = dbConnection.prepareStatement(insertQuery, Statement.RETURN_GENERATED_KEYS)) {
             preparedStatement.setString(1, textbook.getTitle());
             preparedStatement.setString(2, textbook.getDescription());
-            preparedStatement.setInt(3, textbook.getNumberOfPages());
+            preparedStatement.setInt(3, textbook.getPageNumber());
             preparedStatement.setString(4, textbook.getPublisher());
             preparedStatement.setInt(5, textbook.getEdition());
             preparedStatement.setLong(6, textbook.getNumberOfCitations());
@@ -514,6 +512,132 @@ public class Library implements Serializable {
         } catch (SQLException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    public List<LibraryItem> getScientificItemsAndSortByTitle() {
+        List<LibraryItem> items = new ArrayList<>();
+
+        try {
+            // Assuming that the item type IDs for ARTICLE and JOURNAL are 1 and 2, adjust accordingly
+            String sql = "SELECT * FROM library_items WHERE item_type_id IN (?, ?, ?) ORDER BY title";
+
+            try (PreparedStatement preparedStatement = dbConnection.prepareStatement(sql)) {
+                preparedStatement.setLong(1, getItemTypeIdByName(LibraryItemType.ARTICLE.name()));
+                preparedStatement.setLong(2, getItemTypeIdByName(LibraryItemType.JOURNAL.name()));
+                preparedStatement.setLong(3, getItemTypeIdByName(LibraryItemType.TEXTBOOK.name()));
+
+                try (ResultSet resultSet = preparedStatement.executeQuery()) {
+                    while (resultSet.next()) {
+                        Long itemId = resultSet.getLong("item_id");
+                        String title = resultSet.getString("title");
+                        Boolean isAvailable = resultSet.getBoolean("is_available");
+                        String abstractText = resultSet.getString("description");
+                        Integer pageNumber = resultSet.getInt("page_no");
+                        String publisher = resultSet.getString("publisher");
+                        Integer volume = resultSet.getInt("volume");
+                        Integer edition = resultSet.getInt("edition");
+                        Integer issue = resultSet.getInt("issue");
+                        Integer citations = resultSet.getInt("citation_no");
+                        Date publicationDate = resultSet.getDate("pub_date");
+                        ResearchDomain researchDomain = ResearchDomain.valueOf(getTopicNameById(resultSet.getLong("topic_id")));
+
+                        LibraryItemType itemType = LibraryItemType.valueOf(getItemTypeNameById(resultSet.getLong("item_type_id")));
+
+                        List<String> authors = getAuthorsForItem(itemId);
+
+                        LibraryItem item = null;
+
+                        if (itemType == LibraryItemType.JOURNAL) {
+                            PublishingIntervals publishingIntervals = PublishingIntervals.valueOf(getPublishingIntervalNameById(resultSet.getLong("publishing_interval_id")));
+
+                            item = new Journal(itemId, title, abstractText, publisher, issue, pageNumber, citations, publicationDate, authors, researchDomain, publishingIntervals);
+
+                        } else if (itemType == LibraryItemType.ARTICLE) {
+                            item = new Article(itemId, title, abstractText, publisher, pageNumber,citations, publicationDate, authors, researchDomain);
+
+                        } else if (itemType == LibraryItemType.TEXTBOOK) {
+                            item = new Textbook(itemId, title, abstractText, pageNumber, publisher, edition, citations, publicationDate, authors, researchDomain);
+                        }
+
+                        if (item != null) {
+                            item.setAvailable(isAvailable);
+                            items.add(item);
+                        }
+
+                    }
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        return items;
+    }
+
+    private String getPublishingIntervalNameById(Long publishingIntervalId) throws SQLException {
+        String sql = "SELECT display_name FROM publishing_intervals WHERE interval_id = ?";
+        try (PreparedStatement preparedStatement = dbConnection.prepareStatement(sql)) {
+            preparedStatement.setLong(1, publishingIntervalId);
+            try (ResultSet resultSet = preparedStatement.executeQuery()) {
+                if (resultSet.next()) {
+                    return resultSet.getString("display_name");
+                }
+            }
+        }
+
+        return null;
+
+    }
+
+    private String getItemTypeNameById(Long itemTypeId) throws SQLException {
+        String sql = "SELECT display_name FROM item_type WHERE type_id = ?";
+        try (PreparedStatement preparedStatement = dbConnection.prepareStatement(sql)) {
+            preparedStatement.setLong(1, itemTypeId);
+            try (ResultSet resultSet = preparedStatement.executeQuery()) {
+                if (resultSet.next()) {
+                    return resultSet.getString("display_name");
+                }
+            }
+        }
+        return null;
+    }
+
+    private String getTopicNameById(Long topicId) throws SQLException {
+        String sql = "SELECT display_name FROM research_domain WHERE domain_id = ?";
+        try (PreparedStatement preparedStatement = dbConnection.prepareStatement(sql)) {
+            preparedStatement.setLong(1, topicId);
+            try (ResultSet resultSet = preparedStatement.executeQuery()) {
+                if (resultSet.next()) {
+                    return resultSet.getString("display_name");
+                }
+            }
+        }
+        return null;
+    }
+
+    public List<String> getAuthorsForItem(long itemId) {
+        List<String> authors = new ArrayList<>();
+
+        try {
+            String sql = "SELECT authors.author_name FROM authors " +
+                    "JOIN library_item_authors ON authors.author_id = library_item_authors.author_id " +
+                    "WHERE library_item_authors.item_id = ?";
+
+            try (PreparedStatement preparedStatement = dbConnection.prepareStatement(sql)) {
+                preparedStatement.setLong(1, itemId);
+
+                try (ResultSet resultSet = preparedStatement.executeQuery()) {
+                    while (resultSet.next()) {
+                        String authorName = resultSet.getString("author_name");
+                        authors.add(authorName);
+                    }
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        return authors;
     }
 
 }

@@ -13,14 +13,19 @@ import java.util.Objects;
 public abstract class Book extends LibraryItem implements Borrowable {
 
     protected String description;
-    protected int numberOfPages;
     protected String publisher;
     protected double rating;
 
     protected LocalDate returnDate;
 
-    public Book(String title, Date pubDate) {
-        super(title, pubDate);
+    public Book(Long id, String title, Date pubDate, int pageNumber) {
+        super(id, title, pubDate, pageNumber);
+        this.isAvailable = true;
+        this.returnDate = null;
+    }
+
+    public Book(String title, Date pubDate, int pageNumber) {
+        super(title, pubDate, pageNumber);
         this.isAvailable = true;
         this.returnDate = null;
     }
@@ -50,7 +55,7 @@ public abstract class Book extends LibraryItem implements Borrowable {
 
     @Override
     public int hashCode() {
-        return Objects.hash(super.hashCode(), description, numberOfPages, publisher, rating);
+        return Objects.hash(super.hashCode(), description, publisher, rating);
     }
 
     public void returnItem(BorrowRequest borrowRequest) {
@@ -65,13 +70,6 @@ public abstract class Book extends LibraryItem implements Borrowable {
         this.description = description;
     }
 
-    public int getNumberOfPages() {
-        return numberOfPages;
-    }
-
-    public void setNumberOfPages(int numberOfPages) {
-        this.numberOfPages = numberOfPages;
-    }
 
     public String getPublisher() {
         return publisher;

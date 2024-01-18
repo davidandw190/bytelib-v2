@@ -17,8 +17,18 @@ public class Novel extends Book implements Borrowable {
     private String description;
     private String publisher;
 
+    public Novel(Long id, String title, String description , Integer pageNumber, String publisher, Integer volume, Date pubDate, List<String> authors, BookGenre genre) {
+        super(id, title, pubDate, pageNumber);
+        this.volume = volume;
+        this.description = description;
+        this.pageNumber = pageNumber;
+        this.publisher = publisher;
+        this.authors = authors;
+        this.genre = genre;
+    }
+
     public Novel(String title, String description , Integer pageNumber, String publisher, Integer volume, Date pubDate, List<String> authors, BookGenre genre) {
-        super(title, pubDate);
+        super(title, pubDate, pageNumber);
         this.volume = volume;
         this.description = description;
         this.pageNumber = pageNumber;

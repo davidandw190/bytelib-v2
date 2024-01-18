@@ -10,9 +10,14 @@ import java.util.Objects;
 
 public class Article extends Periodical implements Citeable {
     private List<String> authors;
-    private Integer pageNumber;
     private String abstractText;
 
+    public Article(Long id, String title, String abstractText, String publisher, Integer pageNumber, Integer numberOfCitations, Date pubDate, List<String> authors, ResearchDomain domain ) {
+        super(id, title, pubDate, domain, publisher, numberOfCitations, pageNumber);
+        this.authors = authors;
+        this.pageNumber = pageNumber;
+        this.abstractText = abstractText;
+    }
 
     public Article(String title, String abstractText, String publisher, Integer pageNumber, Integer numberOfCitations, Date pubDate, List<String> authors, ResearchDomain domain ) {
         super(title, pubDate, domain, publisher, numberOfCitations);
@@ -56,6 +61,7 @@ public class Article extends Periodical implements Citeable {
     public List<String> getAuthors() {
         return authors;
     }
+
 
 
     private String authorsToString() {
