@@ -1,6 +1,8 @@
 package bytelib.scenes;
 
 import bytelib.Library;
+import bytelib.dto.LoginRequest;
+import bytelib.dto.LoginResponse;
 import bytelib.users.User;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
@@ -8,6 +10,12 @@ import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
+
+import java.io.EOFException;
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.net.Socket;
 
 public class LoginScene {
     private final VBox root;
@@ -80,19 +88,37 @@ public class LoginScene {
         String usernameOrEmail = usernameField.getText().trim();
         String password = passwordField.getText();
 
-        if (usernameOrEmail.isEmpty() || password.isEmpty()) {
-            errorLabel.setText("Please enter both username/email and password.");
-            return;
-        }
+        LoginRequest loginRequest = new LoginRequest(usernameOrEmail, password);
 
-        loggedInUser = library.loginBorrower(usernameOrEmail, password);
+        LoginResponse loginResponse = sendLoginRequest(loginRequest);
 
-        if (loggedInUser != null) {
+        if (loginResponse.success()) {
+            loggedInUser = loginResponse.authenticatedUser();
             System.out.println("\nLogin successful! Welcome, " + loggedInUser.getUsername() + "!");
             showLibraryMenuScene();
-
         } else {
             errorLabel.setText("Invalid credentials. Please try again.");
+        }
+    }
+
+    private LoginResponse sendLoginRequest(LoginRequest loginRequest) {
+        try (Socket socket = new Socket("localhost", 8888);
+             ObjectOutputStream out = new ObjectOutputStream(socket.getOutputStream());
+             ObjectInputStream in = new ObjectInputStream(socket.getInputStream())) {
+
+            out.writeObject("LOGIN");
+
+            out.writeObject(loginRequest);
+
+            return (LoginResponse) in.readObject();
+
+        } catch (EOFException e) {
+            e.printStackTrace();
+            return new LoginResponse(false, null);
+
+        } catch (IOException | ClassNotFoundException e) {
+            e.printStackTrace();
+            return new LoginResponse(false, null);
         }
     }
 

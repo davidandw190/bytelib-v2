@@ -10,6 +10,8 @@ import bytelib.items.periodical.Journal;
 import bytelib.persistence.DBConnector;
 import bytelib.security.PasswordEncoder;
 import bytelib.users.Borrower;
+import bytelib.users.Librarian;
+import bytelib.users.User;
 
 import java.io.Serializable;
 import java.math.BigDecimal;
@@ -18,15 +20,11 @@ import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
 
+import static bytelib.constants.LibraryQuery.*;
+
 
 public class Library implements Serializable {
     private Connection dbConnection;
-
-    private static final String LOGIN_QUERY =
-            "SELECT * FROM users WHERE (username = ? OR email = ?) LIMIT 1";
-
-    public static final String REGISTRATION_QUERY =
-            "INSERT INTO users (username, email, password, phone_no, role_id) VALUES (?, ?, ?, ?, ?)";
 
     public Library(Connection dbConnection) {
         this.dbConnection = dbConnection;
@@ -65,31 +63,32 @@ public class Library implements Serializable {
     }
 
 
-    public void registerUser(String username, String password, String email, String phoneNo, String userTypeName) {
+    public boolean registerUser(String username, String password, String email, String phoneNo, String userTypeName) {
         if (!isUsernameTaken(username) && !isEmailTaken(email)) {
             try {
                 Long accountTypeId = getUserTypeIdByName(userTypeName);
 
-                String sql = "INSERT INTO users (username, password, email, phone_no, role_id) VALUES (?, ?, ?, ?, ?)";
-
-                try (PreparedStatement preparedStatement = dbConnection.prepareStatement(sql)) {
+                try (PreparedStatement preparedStatement = dbConnection.prepareStatement(INSERT_USER_QUERY)) {
                     preparedStatement.setString(1, username);
                     preparedStatement.setString(2, PasswordEncoder.hashPassword(password));
                     preparedStatement.setString(3, email);
                     preparedStatement.setString(4, phoneNo);
                     preparedStatement.setLong(5, accountTypeId);
                     preparedStatement.executeUpdate();
+
+                    return true;
                 }
             } catch (SQLException e) {
                 e.printStackTrace();
             }
         }
+
+        return false;
     }
 
     public Long getUserTypeIdByName(String typeName) {
         try {
-            String sql = "SELECT type_id FROM user_type WHERE name = ?";
-            try (PreparedStatement preparedStatement = dbConnection.prepareStatement(sql)) {
+            try (PreparedStatement preparedStatement = dbConnection.prepareStatement(SELECT_USER_TYPE_BY_ID_QUERY)) {
                 preparedStatement.setString(1, typeName);
                 try (ResultSet resultSet = preparedStatement.executeQuery()) {
                     if (resultSet.next()) {
@@ -99,15 +98,13 @@ public class Library implements Serializable {
             }
         } catch (SQLException e) {
             e.printStackTrace();
-            // TODO: Handle the exception properly or throw a custom exception
         }
         return null;
     }
 
     public UserType getUserType(BigInteger userId) {
         try {
-            String sql = "SELECT user_type.name FROM users JOIN user_type ON users.role_id = user_type.type_id WHERE user_id = ?";
-            try (PreparedStatement preparedStatement = dbConnection.prepareStatement(sql)) {
+            try (PreparedStatement preparedStatement = dbConnection.prepareStatement(SELECT_USER_TYPE_BY_USER_ID_QUERY)) {
                 preparedStatement.setBigDecimal(1, new BigDecimal(userId));
                 try (ResultSet resultSet = preparedStatement.executeQuery()) {
                     if (resultSet.next()) {
@@ -118,15 +115,13 @@ public class Library implements Serializable {
             }
         } catch (SQLException e) {
             e.printStackTrace();
-            // TODO: Handle the exception properly or throw a custom exception
         }
         return null;
     }
 
     public boolean isUsernameTaken(String username) {
         try {
-            String sql = "SELECT * FROM users WHERE username = ?";
-            try (PreparedStatement preparedStatement = dbConnection.prepareStatement(sql)) {
+            try (PreparedStatement preparedStatement = dbConnection.prepareStatement(SELECT_USERS_BY_USERNAME_QUERY)) {
                 preparedStatement.setString(1, username);
                 try (ResultSet resultSet = preparedStatement.executeQuery()) {
                     return resultSet.next();
@@ -141,8 +136,7 @@ public class Library implements Serializable {
 
     public boolean isEmailTaken(String email) {
         try {
-            String sql = "SELECT * FROM users WHERE email = ?";
-            try (PreparedStatement preparedStatement = dbConnection.prepareStatement(sql)) {
+            try (PreparedStatement preparedStatement = dbConnection.prepareStatement(SELECT_USERS_BY_EMAIL)) {
                 preparedStatement.setString(1, email);
                 try (ResultSet resultSet = preparedStatement.executeQuery()) {
                     return resultSet.next();
@@ -242,8 +236,7 @@ public class Library implements Serializable {
 
 
     private void insertNovel(Novel newNovel, Long genreId, long itemTypeId) {
-        String insertQuery = "INSERT INTO library_items (title, description, page_no, publisher, volume, edition, pub_date, genre_id, item_type_id) " +
-                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
+        String insertQuery = INSERT_LIBRARY_ITEM_QUERY;
         try (PreparedStatement preparedStatement = dbConnection.prepareStatement(insertQuery, Statement.RETURN_GENERATED_KEYS)) {
             preparedStatement.setString(1, newNovel.getTitle());
             preparedStatement.setString(2, newNovel.getDescription());
@@ -267,14 +260,14 @@ public class Library implements Serializable {
     }
 
     private Long getGenreIdByName(String name) {
-        String sql = "SELECT genre_id FROM book_genre WHERE display_name = ?";
-        try (PreparedStatement preparedStatement = dbConnection.prepareStatement(sql)) {
+        try (PreparedStatement preparedStatement = dbConnection.prepareStatement(SELECT_GENRE_BY_NAME_QUERY)) {
             preparedStatement.setString(1, name);
             try (ResultSet resultSet = preparedStatement.executeQuery()) {
                 if (resultSet.next()) {
                     return resultSet.getLong("genre_id");
                 }
             }
+
         } catch (SQLException e) {
             throw new RuntimeException(e);
         }
@@ -283,8 +276,7 @@ public class Library implements Serializable {
     }
 
     private Long getPublishingIntervalIdByName(String name) {
-        String sql = "SELECT interval_id FROM publishing_intervals WHERE display_name = ?";
-        try (PreparedStatement preparedStatement = dbConnection.prepareStatement(sql)) {
+        try (PreparedStatement preparedStatement = dbConnection.prepareStatement(SELECT_PUBLISHING_INTERVAL_ID_BY_NAME_QUERY)) {
             preparedStatement.setString(1, name);
             try (ResultSet resultSet = preparedStatement.executeQuery()) {
                 if (resultSet.next()) {
@@ -299,9 +291,7 @@ public class Library implements Serializable {
     }
 
     private void insertJournal(Journal newJournal, Long topicId, Long itemTypeId, Long publishingIntervalId) {
-        String insertQuery = "INSERT INTO library_items (title, description, publisher, issue, page_no, citation_no, pub_date, topic_id, item_type_id, publishing_interval_id) " +
-                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
-        try (PreparedStatement preparedStatement = dbConnection.prepareStatement(insertQuery, Statement.RETURN_GENERATED_KEYS)) {
+        try (PreparedStatement preparedStatement = dbConnection.prepareStatement(INSERT_JOURNAL_QUERY, Statement.RETURN_GENERATED_KEYS)) {
             preparedStatement.setString(1, newJournal.getTitle());
             preparedStatement.setString(2, newJournal.getAbstractText());
             preparedStatement.setString(3, newJournal.getPublisher());
@@ -327,8 +317,7 @@ public class Library implements Serializable {
     }
 
     private Long getItemTypeIdByName(String typeName) throws SQLException {
-        String sql = "SELECT type_id FROM item_type WHERE display_name = ?";
-        try (PreparedStatement preparedStatement = dbConnection.prepareStatement(sql)) {
+        try (PreparedStatement preparedStatement = dbConnection.prepareStatement(SELECT_ITEM_TYPE_ID_BY_NAME_QUERY)) {
             preparedStatement.setString(1, typeName);
             try (ResultSet resultSet = preparedStatement.executeQuery()) {
                 if (resultSet.next()) {
@@ -340,8 +329,7 @@ public class Library implements Serializable {
     }
 
     private Long getTopicIdByName(String topicName) throws SQLException {
-        String sql = "SELECT domain_id FROM research_domain WHERE display_name = ?";
-        try (PreparedStatement preparedStatement = dbConnection.prepareStatement(sql)) {
+        try (PreparedStatement preparedStatement = dbConnection.prepareStatement(SELECT_DOMAIN_ID_BY_DOMAIN_NAME_QUERY)) {
             preparedStatement.setString(1, topicName);
             try (ResultSet resultSet = preparedStatement.executeQuery()) {
                 if (resultSet.next()) {
@@ -354,8 +342,7 @@ public class Library implements Serializable {
 
     public Long getIdByName(String typeName) {
         try {
-            String sql = "SELECT type_id FROM user_type WHERE display_name = ?";
-            try (PreparedStatement preparedStatement = dbConnection.prepareStatement(sql)) {
+            try (PreparedStatement preparedStatement = dbConnection.prepareStatement(SELECT_USER_TYPE_ID_BY_TYPE_NAME_QUERY)) {
                 preparedStatement.setString(1, typeName);
                 try (ResultSet resultSet = preparedStatement.executeQuery()) {
                     if (resultSet.next()) {
@@ -365,14 +352,12 @@ public class Library implements Serializable {
             }
         } catch (SQLException e) {
             e.printStackTrace();
-            // TODO: Handle the exception properly or throw a custom exception
         }
         return null;
     }
 
     private boolean isItemExists(String title, Long itemTypeId) throws SQLException {
-        String query = "SELECT COUNT(*) FROM library_items WHERE title = ? AND item_type_id = ?";
-        try (PreparedStatement preparedStatement = dbConnection.prepareStatement(query)) {
+        try (PreparedStatement preparedStatement = dbConnection.prepareStatement(CHECK_LIB_ITEM_EXISTS_BY_TITLE_AND_TYPE_QUERY)) {
             preparedStatement.setString(1, title);
             preparedStatement.setLong(2, itemTypeId);
             try (ResultSet resultSet = preparedStatement.executeQuery()) {
@@ -386,9 +371,7 @@ public class Library implements Serializable {
     }
 
     private void insertTextbook(Textbook textbook, Long topicId, Long itemTypeId) throws SQLException {
-        String insertQuery = "INSERT INTO library_items (title, description, page_no, publisher, edition, citation_no, pub_date, topic_id, item_type_id) " +
-                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
-        try (PreparedStatement preparedStatement = dbConnection.prepareStatement(insertQuery, Statement.RETURN_GENERATED_KEYS)) {
+        try (PreparedStatement preparedStatement = dbConnection.prepareStatement(INSERT_TEXTBOOK_QUERY, Statement.RETURN_GENERATED_KEYS)) {
             preparedStatement.setString(1, textbook.getTitle());
             preparedStatement.setString(2, textbook.getDescription());
             preparedStatement.setInt(3, textbook.getPageNumber());
@@ -417,8 +400,7 @@ public class Library implements Serializable {
 
             // to check if the author is already associated with the book
             if (!isAuthorAssociatedWithItem(itemId, authorId)) {
-                String updateAuthorsQuery = "INSERT INTO library_item_authors (item_id, author_id) VALUES (?, ?)";
-                try (PreparedStatement updateAuthorsStatement = dbConnection.prepareStatement(updateAuthorsQuery)) {
+                try (PreparedStatement updateAuthorsStatement = dbConnection.prepareStatement(INSERT_ITEMS_AUTHORS_RELATIONSHIP_QUERY)) {
                     updateAuthorsStatement.setLong(1, itemId);
                     updateAuthorsStatement.setLong(2, authorId);
                     updateAuthorsStatement.executeUpdate();
@@ -471,9 +453,7 @@ public class Library implements Serializable {
 
 
     private void insertArticle(Article newArticle, Long topicId, Long itemTypeId) {
-        String insertQuery = "INSERT INTO library_items (title, description, page_no, citation_no, pub_date, topic_id, item_type_id) " +
-                "VALUES (?, ?, ?, ?, ?, ?, ?)";
-        try (PreparedStatement preparedStatement = dbConnection.prepareStatement(insertQuery, Statement.RETURN_GENERATED_KEYS)) {
+        try (PreparedStatement preparedStatement = dbConnection.prepareStatement(INSERT_ARTICLE_QUERY, Statement.RETURN_GENERATED_KEYS)) {
             preparedStatement.setString(1, newArticle.getTitle());
             preparedStatement.setString(2, newArticle.getAbstractText());
             preparedStatement.setInt(3, newArticle.getPageNumber());
@@ -498,10 +478,8 @@ public class Library implements Serializable {
         List<LibraryItem> items = new ArrayList<>();
 
         try {
-            // Assuming that the item type IDs for ARTICLE and JOURNAL are 1 and 2, adjust accordingly
-            String sql = "SELECT * FROM library_items WHERE item_type_id IN (?, ?, ?) ORDER BY title";
 
-            try (PreparedStatement preparedStatement = dbConnection.prepareStatement(sql)) {
+            try (PreparedStatement preparedStatement = dbConnection.prepareStatement(SELECT_SCIENTIFIC_CATALOGUE_SORT_BY_NAME_QUERY)) {
                 preparedStatement.setLong(1, getItemTypeIdByName(LibraryItemType.ARTICLE.name()));
                 preparedStatement.setLong(2, getItemTypeIdByName(LibraryItemType.JOURNAL.name()));
                 preparedStatement.setLong(3, getItemTypeIdByName(LibraryItemType.TEXTBOOK.name()));
@@ -771,5 +749,39 @@ public class Library implements Serializable {
         } catch (SQLException autoCommitException) {
             autoCommitException.printStackTrace();
         }
+    }
+
+    public User getUserByUsername(String username) {
+        try {
+            String sql = "SELECT * FROM users WHERE username = ?";
+            try (PreparedStatement preparedStatement = dbConnection.prepareStatement(sql)) {
+                preparedStatement.setString(1, username);
+
+                try (ResultSet resultSet = preparedStatement.executeQuery()) {
+                    if (resultSet.next()) {
+                        Long userId = resultSet.getLong("userId");
+                        String email = resultSet.getString("email");
+                        String phoneNo = resultSet.getString("phone_no");
+                        String storedPasswordHash = resultSet.getString("password");
+                        UserType userType = getUserType(BigInteger.valueOf(userId));
+
+                        if (userType != null) {
+                            switch (userType) {
+                                case BORROWER:
+                                    return new Borrower(BigInteger.valueOf(userId), username, storedPasswordHash, email, phoneNo);
+                                case LIBRARIAN:
+                                    return new Librarian(BigInteger.valueOf(userId), username, storedPasswordHash, email, phoneNo);
+
+                                default:
+                                    throw new UnsupportedOperationException("Unknown user type: " + userType);
+                            }
+                        }
+                    }
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return null;
     }
 }

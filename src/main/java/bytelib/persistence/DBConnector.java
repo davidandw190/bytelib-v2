@@ -22,9 +22,9 @@ public class DBConnector {
                         properties.getProperty("db.user"),
                         properties.getProperty("db.password")
                 );
-                System.out.println("Connected to the database.");
+                System.out.println("[*] Connected to the database.");
             } catch (SQLException e) {
-                System.out.println("Error connecting to the database: " + e.getMessage());
+                System.out.println("[!] Error connecting to the database: " + e.getMessage());
             }
         }
         return connection;
@@ -34,10 +34,10 @@ public class DBConnector {
         try {
             if (connection != null && !connection.isClosed()) {
                 connection.close();
-                System.out.println("Disconnected from the database.");
+                System.out.println("[*] Disconnected from the database.");
             }
         } catch (SQLException e) {
-            System.out.println("Error closing the database connection: " + e.getMessage());
+            System.out.println("[!] Error closing the database connection: " + e.getMessage());
         }
     }
 

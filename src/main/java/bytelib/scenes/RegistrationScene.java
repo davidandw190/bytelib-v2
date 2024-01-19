@@ -1,6 +1,8 @@
 package bytelib.scenes;
 
 import bytelib.Library;
+import bytelib.dto.RegistrationRequest;
+import bytelib.dto.RegistrationResponse;
 import bytelib.enums.UserType;
 import bytelib.users.Borrower;
 import javafx.geometry.Pos;
@@ -8,6 +10,11 @@ import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.layout.GridPane;
 import javafx.stage.Stage;
+
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.net.Socket;
 
 public class RegistrationScene {
     private final GridPane root;
@@ -98,13 +105,12 @@ public class RegistrationScene {
         }
 
         if (!isValidUsername(username) || !isValidEmail(email) || !isValidPhoneNumber(phone) || !isValidPassword(password)) {
-            System.out.println(isValidEmail(username) + " " + isValidEmail(email) + isValidPhoneNumber(phone) + isValidPassword(password));
-            showErrorPopup("asdasd", "Please check your input and try again.");
+            showErrorPopup("Invalid Input", "Please check your input and try again.");
             return;
         }
 
         if (library.isUsernameTaken(username)) {
-            showErrorPopup("Uuauau", "This username is already in use. Please choose another one.");
+            showErrorPopup("Username Taken", "This username is already in use. Please choose another one.");
             return;
         }
 
@@ -113,13 +119,31 @@ public class RegistrationScene {
             return;
         }
 
-        System.out.println("Chose " + accountType);
+        RegistrationRequest registrationRequest = new RegistrationRequest(username, email, phone, password, accountType);
+        RegistrationResponse registrationResponse = sendRegistrationRequest(registrationRequest);
 
-        library.registerUser(username, password, email, phone, accountType);
+        if (registrationResponse.success()) {
+            showSuccessPopup(registrationResponse.message());
+        } else {
+            showErrorPopup("Registration Failed", registrationResponse.message());
+        }
+    }
 
-        showSuccessPopup("Account Created Successfully!");
+    private RegistrationResponse sendRegistrationRequest(RegistrationRequest registrationRequest) {
+        try (Socket socket = new Socket("localhost", 8888);
+             ObjectOutputStream out = new ObjectOutputStream(socket.getOutputStream());
+             ObjectInputStream in = new ObjectInputStream(socket.getInputStream())) {
 
-        goBack(primaryStage);
+            out.writeObject("REGISTER");
+
+            out.writeObject(registrationRequest);
+
+            return (RegistrationResponse) in.readObject();
+
+        } catch (IOException | ClassNotFoundException e) {
+            e.printStackTrace();
+            return new RegistrationResponse(false, "Registration failed.");
+        }
     }
 
     private boolean isValidUsername(String username) {

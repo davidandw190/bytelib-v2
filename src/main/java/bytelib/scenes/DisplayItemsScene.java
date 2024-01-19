@@ -156,9 +156,14 @@ public class DisplayItemsScene {
         TableColumn<LibraryItem, String> availabilityColumn = new TableColumn<>("Availability");
         availabilityColumn.setCellValueFactory(param -> new SimpleObjectProperty<>(isAvailable(param.getValue())));
 
-        tableView.getColumns().addAll(indexColumn, typeColumn, titleColumn, authorColumn, citationsColumn,
-                editionColumn, issueColumn, pagesColumn, publicationDateColumn, availabilityColumn, citationButtonColumn,
-                removeButtonColumn);
+
+        if (userType == UserType.BORROWER) {
+            tableView.getColumns().addAll(indexColumn, typeColumn, titleColumn, authorColumn, citationsColumn,
+                    editionColumn, issueColumn, pagesColumn, publicationDateColumn, citationButtonColumn, availabilityColumn);
+        } else if (userType == UserType.LIBRARIAN) {
+            tableView.getColumns().addAll(indexColumn, typeColumn, titleColumn, authorColumn, citationsColumn,
+                    editionColumn, issueColumn, pagesColumn, publicationDateColumn, availabilityColumn, citationButtonColumn, removeButtonColumn);
+        }
 
 
         tableView.setItems(observableItems);
@@ -302,9 +307,13 @@ public class DisplayItemsScene {
         TableColumn<LibraryItem, String> availabilityColumn = new TableColumn<>("Availability");
         availabilityColumn.setCellValueFactory(param -> new SimpleObjectProperty<>(isAvailable(param.getValue())));
 
-        tableView.getColumns().addAll(indexColumn, typeColumn, titleColumn, authorColumn, citationsColumn,
-                editionColumn, issueColumn, pagesColumn, publicationDateColumn, availabilityColumn, removeButtonColumn);
-
+        if (userType == UserType.BORROWER) {
+            tableView.getColumns().addAll(indexColumn, typeColumn, titleColumn, authorColumn, citationsColumn,
+                    editionColumn, issueColumn, pagesColumn, publicationDateColumn, availabilityColumn);
+        } else if (userType == UserType.LIBRARIAN) {
+            tableView.getColumns().addAll(indexColumn, typeColumn, titleColumn, authorColumn, citationsColumn,
+                    editionColumn, issueColumn, pagesColumn, publicationDateColumn, availabilityColumn, removeButtonColumn);
+        }
 
         tableView.setItems(observableItems);
 

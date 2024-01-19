@@ -34,20 +34,8 @@ import java.util.stream.Collectors;
 
 
 public class ByteLib {
-    private static final String DEFAULT_FILE_PATH = "lms.dat";
-    private static final String CLEAR_SCREEN_ANSI = "\u001B[2J\u001B[H";
-    private static final int COLUMN_WIDTH = 15;
 
     public static void main(String[] args) {
-
-        Library library;
-
-        Scanner scanner = new Scanner(System.in);
-
-        boolean persistenceEnabled = false;
-
-        String filePath = (args.length >= 2) ? args[1] : DEFAULT_FILE_PATH;
-
 //
 //        if (args.length >= 1 && (args[0].equals("--persist") || args[0].equals("-p"))) {
 //            persistenceEnabled = true;
