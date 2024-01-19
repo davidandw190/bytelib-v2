@@ -11,15 +11,17 @@ import java.util.Objects;
 public class Novel extends Book implements Borrowable {
 
     private Integer volume;
+    private Integer edition;
     private BookGenre genre;
     private List<String> authors;
     private Integer pageNumber;
     private String description;
     private String publisher;
 
-    public Novel(Long id, String title, String description , Integer pageNumber, String publisher, Integer volume, Date pubDate, List<String> authors, BookGenre genre) {
+    public Novel(Long id, String title, String description , Integer pageNumber, String publisher, Integer volume, Integer edition, Date pubDate, List<String> authors, BookGenre genre) {
         super(id, title, pubDate, pageNumber);
         this.volume = volume;
+        this.edition = edition;
         this.description = description;
         this.pageNumber = pageNumber;
         this.publisher = publisher;
@@ -27,9 +29,10 @@ public class Novel extends Book implements Borrowable {
         this.genre = genre;
     }
 
-    public Novel(String title, String description , Integer pageNumber, String publisher, Integer volume, Date pubDate, List<String> authors, BookGenre genre) {
+    public Novel(String title, String description , Integer pageNumber, String publisher, Integer volume, Integer edition, Date pubDate, List<String> authors, BookGenre genre) {
         super(title, pubDate, pageNumber);
         this.volume = volume;
+        this.edition = edition;
         this.description = description;
         this.pageNumber = pageNumber;
         this.publisher = publisher;
@@ -111,6 +114,14 @@ public class Novel extends Book implements Borrowable {
 
     @Override
     public void setStatusAvailable() {
-        this.isAvailable = false;
+        this.isAvailable = true;
+    }
+
+    public Integer getEdition() {
+        return edition;
+    }
+
+    public void setEdition(Integer edition) {
+        this.edition = edition;
     }
 }

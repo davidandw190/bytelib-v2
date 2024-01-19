@@ -32,9 +32,16 @@ public class Article extends Periodical implements Citeable {
         SimpleDateFormat dateFormat = new SimpleDateFormat("dd-MM-yyyy");
         String pubDateStr = dateFormat.format(publicationDate);
 
-        return String.format("%s. \"%s.\" (%s): %s %d citations.",
-                authorsToString(), getTitle(),
-                pubDateStr, getPublisher(), getNumberOfCitations());
+        StringBuilder citationBuilder = new StringBuilder();
+        citationBuilder.append(authorsToString())
+                .append(". \"").append(getTitle()).append(".\" ")
+                .append("(").append(pubDateStr).append("): ")
+                .append(getPublisher())
+                .append(", ")
+                .append(getNumberOfCitations())
+                .append(" citations.");
+
+        return citationBuilder.toString();
     }
 
     @Override

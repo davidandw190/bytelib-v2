@@ -1,6 +1,7 @@
 package bytelib.scenes;
 
 import bytelib.Library;
+import bytelib.enums.CatalogueType;
 import bytelib.enums.UserType;
 import bytelib.users.User;
 import javafx.geometry.Pos;
@@ -34,8 +35,8 @@ public class LibraryMenuScene {
         Button logoutButton = createMenuButton("Logout", this::logout);
 
         if (userType == UserType.BORROWER) {
-            Button viewBooksButton = createMenuButton("View Books Catalogue", this::handleViewBooks);
-            Button viewScientificButton = createMenuButton("View Scientific Catalogue", this::handleViewBooks);
+            Button viewBooksButton = createMenuButton("View Books Catalogue", this::showBooksCatalogueScene);
+            Button viewScientificButton = createMenuButton("View Scientific Catalogue", this::showScientificCatalogueScene);
             Button borrowButton = createMenuButton("Borrow Item", this::handleBorrowBook);
             Button returnButton = createMenuButton("Return Item", this::handleReturnBook);
             Button citeButton = createMenuButton("Cite a Scientific Item", this::handleCiteScientific);
@@ -47,8 +48,8 @@ public class LibraryMenuScene {
             root.getChildren().addAll(viewBooksButton, viewScientificButton, borrowButton, returnButton, citeButton, myRequestsButton, logoutButton);
 
         } else if (userType == UserType.LIBRARIAN) {
-            Button viewBooksButton = createMenuButton("View Books Catalogue", this::viewBooksCatalogue);
-            Button viewScientificButton = createMenuButton("View Scientific Catalogue", this::viewScientificCatalogue);
+            Button viewBooksButton = createMenuButton("View Books Catalogue", this::showBooksCatalogueScene);
+            Button viewScientificButton = createMenuButton("View Scientific Catalogue", this::showScientificCatalogueScene);
             Button addBookButton = createMenuButton("Add Item To Stock", this::addItem);
             Button removeBookButton = createMenuButton("Remove From Stock", this::removeItem);
             Button viewRequestsButton = createMenuButton("View Borrow Requests", this::viewBorrowRequests);
@@ -82,9 +83,6 @@ public class LibraryMenuScene {
         return button;
     }
 
-    private void viewScientificCatalogue() {
-        showCatalogueScene();
-    }
 
     private void handleBorrowBook() {
         System.out.println("Borrowing a Book");
@@ -105,7 +103,7 @@ public class LibraryMenuScene {
     private void addItem() {
         AddItemScene addItemScene = new AddItemScene(primaryStage, library, loggedInUser);
 
-        primaryStage.setScene(new Scene(addItemScene.getRoot(), 500, 400));
+        primaryStage.setScene(new Scene(addItemScene.getRoot(), 600, 500));
     }
 
     private void removeItem() {
@@ -121,60 +119,18 @@ public class LibraryMenuScene {
         showMenuScene();
     }
 
-    private void viewBooksCatalogue() {
-//        Stage booksStage = new Stage();
-//        booksStage.setTitle("Books Catalogue");
-//
-//        // Create the table view
-//        TableView<Book> tableView = new TableView<>();
-//        ObservableList<Book> booksData = FXCollections.observableArrayList(library.getBooksCatalogue());
-//
-//        // Define columns
-//        TableColumn<Book, String> idColumn = new TableColumn<>("ID");
-//        idColumn.setCellValueFactory(new PropertyValueFactory<>("id"));
-//
-//        TableColumn<Book, String> nameColumn = new TableColumn<>("Name");
-//        nameColumn.setCellValueFactory(new PropertyValueFactory<>("name"));
-//
-//        TableColumn<Book, String> statusColumn = new TableColumn<>("Status");
-//        statusColumn.setCellValueFactory(new PropertyValueFactory<>("status"));
-//
-//        // Add columns to the table
-//        tableView.getColumns().addAll(idColumn, nameColumn, statusColumn);
-//
-//        // Set the data to the table
-//        tableView.setItems(booksData);
-//
-//        // Create a button to go back
-//        Button backButton = new Button("Back");
-//        backButton.setOnAction(event -> booksStage.close());
-//
-//        // Create a button to add a book
-//        Button addBookButton = new Button("Add Book");
-//        addBookButton.setOnAction(event -> addItem());
-//
-//        // Create a VBox layout for the scene
-//        VBox booksLayout = new VBox(30);
-//        booksLayout.getChildren().addAll(tableView, backButton, addBookButton);
-//        booksLayout.setAlignment(Pos.CENTER);
-//
-//        // Create the scene
-//        Scene booksScene = new Scene(booksLayout, 800, 600);
-//
-//        // Set the scene to the stage
-//        booksStage.setScene(booksScene);
-//
-//        // Show the stage
-//        booksStage.show();
+    private void showBooksCatalogueScene() {
+        DisplayItemsScene scene = new DisplayItemsScene(primaryStage, library, loggedInUser, CatalogueType.BOOKS);
+        primaryStage.setScene(new Scene(scene.getRoot(), 1200, 800));
+    }
+
+    private void showScientificCatalogueScene() {
+        DisplayItemsScene scene = new DisplayItemsScene(primaryStage, library, loggedInUser, CatalogueType.SCIENTIFIC);
+        primaryStage.setScene(new Scene(scene.getRoot(), 1200, 800));
     }
 
     private void showMenuScene() {
         MainMenuScene mainMenuScene = new MainMenuScene(primaryStage, library);
-        primaryStage.setScene(new Scene(mainMenuScene.getRoot(), 500, 400));
-    }
-
-    private void showCatalogueScene() {
-        DisplayItemsScene scene = new DisplayItemsScene(primaryStage, library, loggedInUser);
-        primaryStage.setScene(new Scene(scene.getRoot(), 700, 700));
+        primaryStage.setScene(new Scene(mainMenuScene.getRoot(), 600, 500));
     }
 }

@@ -288,6 +288,7 @@ public class AddItemScene {
                 getTextFromLabeledField(novelLayout, "page"),
                 getTextFromLabeledField(novelLayout, "publisher"),
                 getTextFromLabeledField(novelLayout, "volume"),
+                getTextFromLabeledField(novelLayout, "volume"),
                 getLocalDateFromLabeledDatePicker(novelLayout, "publicationDate"),
                 getTextFromLabeledField(novelLayout, "authors"),
                 getSelectedItemFromLabeledComboBox(novelLayout, "genre")
@@ -303,12 +304,12 @@ public class AddItemScene {
         novelStage.show();
     }
 
-    private void handleAddNovel(String title, String description, String pages, String publisher, String volume, LocalDate publicationDate, String authors, String genreField) {
+    private void handleAddNovel(String title, String description, String pages, String publisher, String volume, String edition, LocalDate publicationDate, String authors, String genreField) {
 
-        if (validateNovelFields(title, description, pages, publisher, volume, publicationDate, authors, genreField)) {
+        if (validateNovelFields(title, description, pages, publisher, volume, edition, publicationDate, authors, genreField)) {
             try {
                 library.addItemToStock(LibraryItemType.NOVEL, title, description , Integer.parseInt(pages), publisher, Integer.parseInt(volume),
-                        null, null, null, Date.valueOf(publicationDate), convertCommaSeparatedToList(authors),
+                        null, Integer.parseInt(edition), null, Date.valueOf(publicationDate), convertCommaSeparatedToList(authors),
                         null, BookGenre.valueOf(genreField), null);
 
                 showSuccessPopup("Novel Added To Stock", "The novel has been successfully added to the library.");
@@ -626,7 +627,8 @@ public class AddItemScene {
     }
 
     private boolean validateNovelFields(String title, String description, String pages, String publisher, String volume,
-                                           LocalDate pubDate, String authors,  String genreField) {
+
+                                           String edition, LocalDate pubDate, String authors,  String genreField) {
 
         if (title == null || title.isEmpty()) {
             showErrorPopup("Invalid Input", "Please enter the title of the novel.");
@@ -653,6 +655,11 @@ public class AddItemScene {
             return false;
         }
 
+        if (edition == null || edition.isEmpty() || !isValidNumber(edition)) {
+            showErrorPopup("Invalid Input", "Please enter a valid edition for the novel.");
+            return false;
+        }
+
         if (pubDate == null) {
             showErrorPopup("Invalid Input", "Please select the publication date of the novel.");
             return false;
@@ -675,9 +682,9 @@ public class AddItemScene {
     private boolean isValidNumber(String number) {
         try {
             double doubleValue = Double.parseDouble(number);
-            return doubleValue > 0; // Ensure the number is positive
+            return doubleValue > 0;
         } catch (NumberFormatException e) {
-            return false; // Not a valid number
+            return false;
         }
     }
 

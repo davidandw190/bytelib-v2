@@ -23,6 +23,7 @@ public abstract class LibraryItem implements Serializable {
     }
 
     public LibraryItem(Long id, String title, Date publicationDate, Integer pageNumber) {
+        this.id = id;
         this.title = title;
         this.pageNumber = pageNumber;
         this.publicationDate = publicationDate;
